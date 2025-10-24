@@ -1,13 +1,20 @@
 from __future__ import annotations
 
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import redirect, render
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    HttpResponseForbidden,
+    JsonResponse,
+)
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_GET, require_POST
 
-from .forms import SignupForm
+from .forms import BookingForm, SignupForm, VenueForm
+from .models import Booking, Venue
 
 
 def login_page(request: HttpRequest) -> HttpResponse:
@@ -24,7 +31,48 @@ def register_page(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
-    return render(request, "main/dashboard.html")
+    return redirect("main:admin_panel")
+
+
+def _user_is_staff(user) -> bool:
+    return user.is_staff or user.is_superuser
+
+
+def _forbid_if_not_staff(request: HttpRequest) -> HttpResponse | None:
+    if not _user_is_staff(request.user):
+        return HttpResponseForbidden("You do not have permission to access this page.")
+    return None
+
+
+def _serialize_venue(venue: Venue) -> dict[str, object]:
+    return {
+        "id": venue.id,
+        "title": venue.title,
+        "description": venue.description,
+        "facilities": venue.facilities,
+        "price": venue.price,
+        "location": venue.location,
+        "image_url": venue.image.url if venue.image else "",
+        "created_at": venue.created_at.isoformat(),
+        "updated_at": venue.updated_at.isoformat(),
+    }
+
+
+def _serialize_booking(booking: Booking) -> dict[str, object]:
+    return {
+        "id": booking.id,
+        "username": booking.username,
+        "venue": {
+            "id": booking.venue_id,
+            "title": booking.venue.title,
+        },
+        "has_been_paid": booking.has_been_paid,
+        "start_date": booking.date.start_date.isoformat(),
+        "end_date": booking.date.end_date.isoformat(),
+        "notes": booking.notes,
+        "created_at": booking.created_at.isoformat(),
+        "updated_at": booking.updated_at.isoformat(),
+    }
 
 
 @login_required
@@ -35,20 +83,28 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 
 @require_POST
 def login_api(request: HttpRequest) -> JsonResponse:
-    email = request.POST.get("email", "").strip().lower()
+    identifier = request.POST.get("email", "").strip()
     password = request.POST.get("password", "")
 
     errors: list[str] = []
-    if not email:
-        errors.append("Please enter your email address.")
+    if not identifier:
+        errors.append("Please enter your email or username.")
     if not password:
         errors.append("Please enter your password.")
 
     user = None
     if not errors:
-        user = authenticate(request, username=email, password=password)
+        User = get_user_model()
+        candidate_username = identifier
+        try:
+            matched_user = User.objects.get(email__iexact=identifier)
+            candidate_username = matched_user.get_username()
+        except User.DoesNotExist:
+            pass
+
+        user = authenticate(request, username=candidate_username, password=password)
         if user is None:
-            errors.append("Invalid email or password.")
+            errors.append("Invalid login credentials.")
 
     if errors:
         return JsonResponse({"success": False, "errors": errors}, status=400)
@@ -67,3 +123,135 @@ def register_api(request: HttpRequest) -> JsonResponse:
     user = form.save()
     login(request, user)
     return JsonResponse({"success": True, "redirect_url": reverse("main:dashboard")})
+
+
+@login_required
+@ensure_csrf_cookie
+def admin_panel(request: HttpRequest) -> HttpResponse:
+    forbidden = _forbid_if_not_staff(request)
+    if forbidden:
+        return forbidden
+
+    venues = [_serialize_venue(venue) for venue in Venue.objects.all()]
+    bookings = [_serialize_booking(booking) for booking in Booking.objects.select_related("venue", "date")]
+    context = {
+        "venues": venues,
+        "bookings": bookings,
+    }
+    return render(request, "main/admin_panel.html", context)
+
+
+def _json_errors(form) -> list[str]:
+    return [error for error_list in form.errors.values() for error in error_list]
+
+
+@login_required
+@require_GET
+def venues_list_api(request: HttpRequest) -> JsonResponse:
+    forbidden = _forbid_if_not_staff(request)
+    if forbidden:
+        return forbidden
+
+    venues = [_serialize_venue(venue) for venue in Venue.objects.all()]
+    return JsonResponse({"success": True, "data": venues})
+
+
+@login_required
+@require_POST
+def venues_create_api(request: HttpRequest) -> JsonResponse:
+    forbidden = _forbid_if_not_staff(request)
+    if forbidden:
+        return forbidden
+
+    form = VenueForm(request.POST, request.FILES)
+    if not form.is_valid():
+        return JsonResponse({"success": False, "errors": _json_errors(form)}, status=400)
+
+    venue = form.save()
+    return JsonResponse({"success": True, "data": _serialize_venue(venue)})
+
+
+@login_required
+@require_POST
+def venues_update_api(request: HttpRequest, pk: int) -> JsonResponse:
+    forbidden = _forbid_if_not_staff(request)
+    if forbidden:
+        return forbidden
+
+    venue = get_object_or_404(Venue, pk=pk)
+    form = VenueForm(request.POST, request.FILES, instance=venue)
+    if not form.is_valid():
+        return JsonResponse({"success": False, "errors": _json_errors(form)}, status=400)
+
+    venue = form.save()
+    return JsonResponse({"success": True, "data": _serialize_venue(venue)})
+
+
+@login_required
+@require_POST
+def venues_delete_api(request: HttpRequest, pk: int) -> JsonResponse:
+    forbidden = _forbid_if_not_staff(request)
+    if forbidden:
+        return forbidden
+
+    venue = get_object_or_404(Venue, pk=pk)
+    venue.delete()
+    return JsonResponse({"success": True})
+
+
+@login_required
+@require_GET
+def bookings_list_api(request: HttpRequest) -> JsonResponse:
+    forbidden = _forbid_if_not_staff(request)
+    if forbidden:
+        return forbidden
+
+    bookings = [
+        _serialize_booking(booking)
+        for booking in Booking.objects.select_related("venue", "date")
+    ]
+    return JsonResponse({"success": True, "data": bookings})
+
+
+@login_required
+@require_POST
+def bookings_create_api(request: HttpRequest) -> JsonResponse:
+    forbidden = _forbid_if_not_staff(request)
+    if forbidden:
+        return forbidden
+
+    form = BookingForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({"success": False, "errors": _json_errors(form)}, status=400)
+
+    booking = form.save()
+    return JsonResponse({"success": True, "data": _serialize_booking(booking)})
+
+
+@login_required
+@require_POST
+def bookings_update_api(request: HttpRequest, pk: int) -> JsonResponse:
+    forbidden = _forbid_if_not_staff(request)
+    if forbidden:
+        return forbidden
+
+    booking = get_object_or_404(Booking.objects.select_related("date"), pk=pk)
+    form = BookingForm(request.POST, instance=booking)
+    if not form.is_valid():
+        return JsonResponse({"success": False, "errors": _json_errors(form)}, status=400)
+
+    booking = form.save()
+    return JsonResponse({"success": True, "data": _serialize_booking(booking)})
+
+
+@login_required
+@require_POST
+def bookings_delete_api(request: HttpRequest, pk: int) -> JsonResponse:
+    forbidden = _forbid_if_not_staff(request)
+    if forbidden:
+        return forbidden
+
+    booking = get_object_or_404(Booking, pk=pk)
+    booking.date.delete()
+    booking.delete()
+    return JsonResponse({"success": True})
