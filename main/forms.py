@@ -5,9 +5,18 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
-from .models import Booking, DateRange, Venue
+from .models import Booking, BookingDate, Venue
 
 User = get_user_model()
+
+
+def _split_facilities(value: str) -> list[str]:
+    if not value:
+        return []
+    if isinstance(value, list):
+        return [item for item in value if item]
+    facilities = [item.strip() for item in value.split(",")]
+    return [item for item in facilities if item]
 
 
 class SignupForm(forms.Form):
@@ -86,74 +95,57 @@ class SignupForm(forms.Form):
 
 
 class VenueForm(forms.ModelForm):
-    facilities = forms.CharField(required=False)
+    facilities = forms.CharField(
+        required=False,
+        help_text="Separate facilities with commas",
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Wi-Fi, Parking, Catering",
+            }
+        ),
+    )
 
     class Meta:
         model = Venue
         fields = ["title", "description", "facilities", "price", "location", "image"]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk:
-            self.fields["image"].required = False
-            if isinstance(self.instance.facilities, list):
-                self.initial.setdefault("facilities", ", ".join(self.instance.facilities))
-        else:
-            self.fields["image"].required = True
-
     def clean_facilities(self) -> list[str]:
-        facilities = self.cleaned_data.get("facilities")
-        if not facilities:
-            return []
-        if isinstance(facilities, list):
-            return facilities
-        if isinstance(facilities, str):
-            parsed = [item.strip() for item in facilities.split(",") if item.strip()]
-            return parsed
-        raise ValidationError("Invalid facilities format.")
+        return _split_facilities(self.cleaned_data.get("facilities", ""))
 
 
 class BookingForm(forms.ModelForm):
-    start_date = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
-    end_date = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
+    start_date = forms.DateField(input_formats=["%Y-%m-%d"])
+    end_date = forms.DateField(input_formats=["%Y-%m-%d"])
 
     class Meta:
         model = Booking
         fields = ["username", "venue", "has_been_paid", "notes"]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["notes"].required = False
-        if self.instance and self.instance.pk and self.instance.date:
-            self.initial.setdefault("start_date", self.instance.date.start_date)
-            self.initial.setdefault("end_date", self.instance.date.end_date)
-
     def clean(self) -> dict[str, object]:
-        cleaned_data = super().clean()
-        start_date = cleaned_data.get("start_date")
-        end_date = cleaned_data.get("end_date")
-        if start_date and end_date and end_date < start_date:
-            raise ValidationError("End date cannot be earlier than the start date.")
-        return cleaned_data
+        cleaned = super().clean()
+        start = cleaned.get("start_date")
+        end = cleaned.get("end_date")
+        if start and end and end < start:
+            raise ValidationError("End date cannot be before the start date.")
+        return cleaned
 
     def save(self, commit: bool = True) -> Booking:
         booking = super().save(commit=False)
-        start_date = self.cleaned_data["start_date"]
-        end_date = self.cleaned_data["end_date"]
+        start = self.cleaned_data["start_date"]
+        end = self.cleaned_data["end_date"]
 
-        if booking.pk and booking.date:
-            date_range = booking.date
-            date_range.start_date = start_date
-            date_range.end_date = end_date
-            if commit:
-                date_range.save()
+        if booking.pk and booking.date_id:
+            booking_date = booking.date
+            booking_date.start_date = start
+            booking_date.end_date = end
         else:
-            date_range = DateRange(start_date=start_date, end_date=end_date)
-            if commit:
-                date_range.save()
-        booking.date = date_range
+            booking_date = BookingDate(start_date=start, end_date=end)
 
         if commit:
+            booking_date.save()
+            booking.date = booking_date
             booking.save()
-            self.save_m2m()
+        else:
+            booking.date = booking_date
+
         return booking

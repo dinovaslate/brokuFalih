@@ -119,8 +119,11 @@ STATIC_URL = 'static/'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 LOGIN_URL = 'main:login'
-LOGIN_REDIRECT_URL = 'main:dashboard'
+LOGIN_REDIRECT_URL = 'main:admin_panel'
 LOGOUT_REDIRECT_URL = 'main:login'
 
 # Default primary key field type
