@@ -20,13 +20,13 @@
       {% csrf_token %}
       <div class="form-errors" data-errors role="alert" aria-live="polite"></div>
       <div class="form-control">
-        <label for="id_email">Email</label>
+        <label for="id_email">Email or Username</label>
         <input
           id="id_email"
-          type="email"
+          type="text"
           name="email"
-          placeholder="Email"
-          autocomplete="email"
+          placeholder="Email or username"
+          autocomplete="username"
           required
         />
       </div>

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import (
     HttpRequest,
@@ -83,20 +83,28 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 
 @require_POST
 def login_api(request: HttpRequest) -> JsonResponse:
-    email = request.POST.get("email", "").strip().lower()
+    identifier = request.POST.get("email", "").strip()
     password = request.POST.get("password", "")
 
     errors: list[str] = []
-    if not email:
-        errors.append("Please enter your email address.")
+    if not identifier:
+        errors.append("Please enter your email or username.")
     if not password:
         errors.append("Please enter your password.")
 
     user = None
     if not errors:
-        user = authenticate(request, username=email, password=password)
+        User = get_user_model()
+        candidate_username = identifier
+        try:
+            matched_user = User.objects.get(email__iexact=identifier)
+            candidate_username = matched_user.get_username()
+        except User.DoesNotExist:
+            pass
+
+        user = authenticate(request, username=candidate_username, password=password)
         if user is None:
-            errors.append("Invalid email or password.")
+            errors.append("Invalid login credentials.")
 
     if errors:
         return JsonResponse({"success": False, "errors": errors}, status=400)
