@@ -81,6 +81,28 @@
   };
   const venueSelect = entityForm.querySelector('select[name="venue"]');
 
+  function toggleFormSection(section, isActive) {
+    if (!section) {
+      return;
+    }
+    const fields = section.querySelectorAll('input, select, textarea');
+    fields.forEach((field) => {
+      field.disabled = !isActive;
+    });
+  }
+
+  function setActiveFormSection(section) {
+    Object.entries(formSections).forEach(([key, element]) => {
+      const isActive = key === section;
+      if (element) {
+        element.classList.toggle('is-hidden', !isActive);
+        toggleFormSection(element, isActive);
+      }
+    });
+  }
+
+  setActiveFormSection('venues');
+
   function getCsrfToken() {
     const cookie = document.cookie
       .split(';')
@@ -362,9 +384,7 @@
     entityForm.dataset.section = section;
     entityForm.dataset.recordId = recordId || '';
 
-    Object.entries(formSections).forEach(([key, element]) => {
-      element.classList.toggle('is-hidden', key !== section);
-    });
+    setActiveFormSection(section);
 
     clearForm();
     clearErrors();
