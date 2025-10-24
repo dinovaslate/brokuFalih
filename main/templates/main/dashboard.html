@@ -1,0 +1,18 @@
+{% extends "main/base_auth.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+  <section class="card dashboard-card">
+    <h1>Welcome back, {{ request.user.first_name|default:request.user.username }}!</h1>
+    <p>
+      You're signed in and ready to start building beautiful documents with your
+      team. Use the navigation to create a new workspace or pick up where you left
+      off.
+    </p>
+    <div class="dashboard-actions">
+      <a class="primary-btn" href="#">Create a new doc</a>
+      <a class="secondary-btn" href="{% url 'main:logout' %}">Log out</a>
+    </div>
+  </section>
+{% endblock %}
