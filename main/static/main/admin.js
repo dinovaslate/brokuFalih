@@ -81,27 +81,12 @@
   };
   const venueSelect = entityForm.querySelector('select[name="venue"]');
 
-  const originalRequirements = new WeakMap();
-
-  Object.values(formSections).forEach((section) => {
-    if (!section) {
-      return;
-    }
-    section.querySelectorAll('input, select, textarea').forEach((field) => {
-      originalRequirements.set(field, field.required);
-    });
-  });
-
-  entityForm.setAttribute('novalidate', 'novalidate');
-
   function toggleFormSection(section, isActive) {
     if (!section) {
       return;
     }
     const fields = section.querySelectorAll('input, select, textarea');
     fields.forEach((field) => {
-      const wasRequired = originalRequirements.get(field) || false;
-      field.required = isActive && wasRequired;
       field.disabled = !isActive;
     });
   }
