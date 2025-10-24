@@ -1,0 +1,60 @@
+{% extends "main/base_auth.html" %}
+
+{% block title %}Sign in{% endblock %}
+
+{% block content %}
+  <section class="card login-card">
+    <div class="card-header">
+      <div class="card-icon">🔐</div>
+      <h1>Sign in with email</h1>
+      <p>Make a new doc to bring your words, data, and teams together. For free.</p>
+    </div>
+    <form
+      id="login-form"
+      class="auth-form"
+      method="post"
+      action="{% url 'main:login_api' %}"
+      data-ajax-form
+      data-success-redirect
+    >
+      {% csrf_token %}
+      <div class="form-control">
+        <label for="id_email">Email</label>
+        <input
+          id="id_email"
+          type="email"
+          name="email"
+          placeholder="Email"
+          autocomplete="email"
+          required
+        />
+      </div>
+      <div class="form-control">
+        <label for="id_password">Password</label>
+        <input
+          id="id_password"
+          type="password"
+          name="password"
+          placeholder="Password"
+          autocomplete="current-password"
+          required
+        />
+        <a class="form-link" href="#">Forgot password?</a>
+      </div>
+      <div class="form-errors" data-errors role="alert" aria-live="polite"></div>
+      <button type="submit" class="primary-btn">Get Started</button>
+      <div class="form-footer">
+        <span>Or sign in with</span>
+        <div class="social-buttons">
+          <button type="button" aria-label="Sign in with Google">G</button>
+          <button type="button" aria-label="Sign in with Microsoft"></button>
+          <button type="button" aria-label="Sign in with Apple">in</button>
+        </div>
+      </div>
+      <p class="switch-link">
+        Don't have an account?
+        <a href="{% url 'main:register' %}">Create one</a>
+      </p>
+    </form>
+  </section>
+{% endblock %}
