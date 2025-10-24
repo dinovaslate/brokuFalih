@@ -1,18 +1,97 @@
-{% extends "main/base_auth.html" %}
+{% extends "main/base_dashboard.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Admin Dashboard{% endblock %}
 
-{% block content %}
-  <section class="card dashboard-card">
-    <h1>Welcome back, {{ request.user.first_name|default:request.user.username }}!</h1>
-    <p>
-      You're signed in and ready to start building beautiful documents with your
-      team. Use the navigation to create a new workspace or pick up where you left
-      off.
-    </p>
-    <div class="dashboard-actions">
-      <a class="primary-btn" href="#">Create a new doc</a>
-      <a class="secondary-btn" href="{% url 'main:logout' %}">Log out</a>
+{% block body %}
+  <div
+    class="app-shell"
+    id="adminApp"
+    data-venues-url="{{ venues_url }}"
+    data-venue-detail-base="{{ venue_detail_base }}"
+    data-bookings-url="{{ bookings_url }}"
+    data-booking-detail-base="{{ booking_detail_base }}"
+  >
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <div class="brand-icon">SZ</div>
+        <div class="brand-copy">
+          <span class="brand-title">Event Suite</span>
+          <span class="brand-subtitle">Control Center</span>
+        </div>
+      </div>
+      <nav class="sidebar__nav">
+        <button class="nav-link is-active" data-view="venues">
+          <span class="nav-icon">🏢</span>
+          <span class="nav-label">Venues</span>
+        </button>
+        <button class="nav-link" data-view="bookings">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Bookings</span>
+        </button>
+      </nav>
+      <div class="sidebar__footer">
+        <a class="logout-link" href="{% url 'main:logout' %}">Sign out</a>
+      </div>
+    </aside>
+
+    <section class="main-panel">
+      <header class="panel-header">
+        <div>
+          <h1 class="panel-title" data-section-title>Venues</h1>
+          <p class="panel-description" data-section-description>
+            Manage every venue in your portfolio, update pricing, and keep facilities accurate.
+          </p>
+        </div>
+        <button class="primary-btn" type="button" data-open-modal>
+          <span class="btn-icon">＋</span>
+          <span data-modal-trigger-copy>Add venue</span>
+        </button>
+      </header>
+
+      <div class="content-card">
+        <div class="table-toolbar">
+          <div class="toolbar-status" data-table-status>Loading…</div>
+          <div class="toolbar-actions">
+            <button class="ghost-btn" type="button" data-refresh>
+              <span class="btn-icon">⟳</span>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" data-table>
+            <thead data-table-head></thead>
+            <tbody data-table-body></tbody>
+          </table>
+          <div class="empty-state" data-empty-state hidden>
+            <h2>No records yet</h2>
+            <p>Start by adding a new item using the “Add” button above.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal hidden" data-modal>
+    <div class="modal__dialog">
+      <header class="modal__header">
+        <h2 class="modal__title" data-modal-title>New item</h2>
+        <button class="icon-btn" type="button" data-close-modal aria-label="Close">
+          ✕
+        </button>
+      </header>
+      <div class="modal__body">
+        <div class="alert" data-modal-errors hidden></div>
+        <form class="modal__form" data-modal-form enctype="multipart/form-data">
+          <input type="hidden" name="_method" value="" data-method-field />
+          <div data-modal-fields></div>
+          <div class="form-actions">
+            <button class="primary-btn" type="submit" data-modal-submit>Save</button>
+            <button class="ghost-btn" type="button" data-close-modal>Cancel</button>
+          </div>
+        </form>
+      </div>
     </div>
-  </section>
+  </div>
+  <div class="modal-overlay hidden" data-overlay></div>
 {% endblock %}
