@@ -1,0 +1,162 @@
+{% extends "main/base_admin.html" %}
+
+{% block title %}Admin Panel{% endblock %}
+
+{% block content %}
+  <div class="admin-layout" id="admin-app" data-active-section="venues">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-logo">Cloud Docs</span>
+        <span class="sidebar-subtitle">Events Admin</span>
+      </div>
+      <nav class="sidebar-nav" aria-label="Admin navigation">
+        <button class="nav-link is-active" type="button" data-target="venues">
+          Venues
+        </button>
+        <button class="nav-link" type="button" data-target="bookings">
+          Bookings
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{% url 'main:logout' %}" class="logout-link">Log out</a>
+      </div>
+    </aside>
+    <section class="content-area">
+      <header class="content-header">
+        <div>
+          <h1 class="content-title" data-section-title>Venues</h1>
+          <p class="content-subtitle" data-section-description>
+            Manage your venues, pricing, facilities, and imagery in real time.
+          </p>
+        </div>
+        <button class="primary-btn" type="button" data-action="open-modal">
+          <span class="btn-label">Add venue</span>
+        </button>
+      </header>
+      <div class="content-body">
+        <section class="data-section" data-section="venues" aria-label="Venues table">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Image</th>
+                  <th scope="col">Title</th>
+                  <th scope="col">Location</th>
+                  <th scope="col">Facilities</th>
+                  <th scope="col">Price</th>
+                  <th scope="col" class="actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="venues-table-body"></tbody>
+            </table>
+            <p class="empty-state" data-empty="venues">No venues available yet.</p>
+          </div>
+        </section>
+        <section
+          class="data-section is-hidden"
+          data-section="bookings"
+          aria-label="Bookings table"
+        >
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Guest</th>
+                  <th scope="col">Venue</th>
+                  <th scope="col">Dates</th>
+                  <th scope="col">Paid</th>
+                  <th scope="col">Notes</th>
+                  <th scope="col" class="actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="bookings-table-body"></tbody>
+            </table>
+            <p class="empty-state" data-empty="bookings">No bookings recorded yet.</p>
+          </div>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" data-modal hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h2 id="modal-title">Create</h2>
+        <button class="icon-btn" type="button" data-action="close-modal" aria-label="Close">
+          ×
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="alert" data-modal-errors hidden></div>
+        <form id="entity-form" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div data-form="venues" class="form-grid">
+            <label>
+              <span>Title</span>
+              <input type="text" name="title" required maxlength="255" />
+            </label>
+            <label>
+              <span>Description</span>
+              <textarea name="description" rows="3" required></textarea>
+            </label>
+            <label>
+              <span>Facilities (comma separated)</span>
+              <input type="text" name="facilities" />
+            </label>
+            <label>
+              <span>Price</span>
+              <input type="number" name="price" min="0" required />
+            </label>
+            <label>
+              <span>Location</span>
+              <input type="text" name="location" required maxlength="255" />
+            </label>
+            <label>
+              <span>Image</span>
+              <input type="file" name="image" accept="image/*" />
+            </label>
+          </div>
+          <div data-form="bookings" class="form-grid is-hidden">
+            <label>
+              <span>Guest username</span>
+              <input type="text" name="username" required maxlength="255" />
+            </label>
+            <label>
+              <span>Venue</span>
+              <select name="venue" required></select>
+            </label>
+            <div class="date-grid">
+              <label>
+                <span>Start date</span>
+                <input type="date" name="start_date" required />
+              </label>
+              <label>
+                <span>End date</span>
+                <input type="date" name="end_date" required />
+              </label>
+            </div>
+            <label class="checkbox">
+              <input type="checkbox" name="has_been_paid" value="true" />
+              <span>Has been paid</span>
+            </label>
+            <label>
+              <span>Notes</span>
+              <textarea name="notes" rows="3"></textarea>
+            </label>
+          </div>
+          <div class="modal-footer">
+            <button class="secondary-btn" type="button" data-action="close-modal">
+              Cancel
+            </button>
+            <button class="primary-btn" type="submit">
+              <span data-submit-label>Save</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {{ venues|json_script:"initial-venues" }}
+  {{ bookings|json_script:"initial-bookings" }}
+{% endblock %}

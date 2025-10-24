@@ -18,6 +18,7 @@
       data-success-redirect
     >
       {% csrf_token %}
+      <div class="form-errors" data-errors role="alert" aria-live="polite"></div>
       <div class="form-control">
         <label for="id_email">Email</label>
         <input
@@ -41,7 +42,6 @@
         />
         <a class="form-link" href="#">Forgot password?</a>
       </div>
-      <div class="form-errors" data-errors role="alert" aria-live="polite"></div>
       <button type="submit" class="primary-btn">Get Started</button>
       <div class="form-footer">
         <span>Or sign in with</span>
