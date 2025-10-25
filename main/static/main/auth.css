@@ -70,6 +70,11 @@
   animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1);
 }
 
+.gradient-mesh .mesh-bounce {
+  animation-name: meshBounce;
+  animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1);
+}
+
 .mesh-1 {
   top: -15%;
   left: -12%;
