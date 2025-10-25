@@ -43,97 +43,97 @@ SAMPLE_USERS: list[dict[str, str]] = [
 
 SAMPLE_VENUES: list[dict[str, object]] = [
     {
-        "title": "Marvel Irawan Futbol Dome",
-        "type": Venue.VenueType.SEPAK_BOLA,
-        "description": "Premium sepak bola complex with FIFA-grade turf, tunnel lighting, and hospitality suites.",
+        "title": "Aurora Sports Dome",
+        "type": Venue.VenueType.FUTSAL,
+        "description": "Indoor futsal pitch with climate control, lounge seating, and LED scoreboards.",
         "facilities": [
-            "Match-ready sepak bola equipment",
-            "Professional locker rooms",
-            "VIP hospitality lounge",
+            "Locker rooms",
+            "On-site cafe",
+            "LED scoreboards",
         ],
-        "price": 1500000,
-        "location": "Emerald Garden, Jakarta",
-    },
-    {
-        "title": "Star Wars Themed Venue",
-        "type": Venue.VenueType.TENNIS,
-        "description": "Immersive tennis experience with cinematic lighting, themed music, and holographic scoreboards.",
-        "facilities": [
-            "Holographic scoreboard",
-            "Cantina-inspired lunchroom",
-            "Themed locker pods",
-        ],
-        "price": 2500000,
-        "location": "Emerald Garden, Jakarta",
+        "price": 550000,
+        "location": "Jakarta, Indonesia",
     },
     {
         "title": "Harborview Badminton Center",
         "type": Venue.VenueType.BADMINTON,
-        "description": "Six international-standard courts with sprung flooring, pro shop services, and streaming booths.",
+        "description": "Six international-standard courts with sprung flooring and pro shop services.",
         "facilities": [
             "Stringing service",
             "Equipment rental",
             "Private coaching rooms",
         ],
-        "price": 980000,
+        "price": 320000,
         "location": "Surabaya, Indonesia",
+    },
+    {
+        "title": "Summit Court Arena",
+        "type": Venue.VenueType.BASKET,
+        "description": "Full-sized basketball court with seating for 500 and premium locker facilities.",
+        "facilities": [
+            "Courtside seating",
+            "Hydration station",
+            "Strength studio",
+        ],
+        "price": 680000,
+        "location": "Bandung, Indonesia",
     },
 ]
 
 SAMPLE_BOOKINGS: list[dict[str, object]] = [
     {
         "username": "demo.alex",
-        "venue": "Marvel Irawan Futbol Dome",
+        "venue": "Aurora Sports Dome",
         "paid": True,
-        "start_delta": 2,
+        "start_delta": 4,
         "duration": 1,
-        "paid_delta": 1,
-        "notes": "Corporate futsal league quarter-final with hospitality add-ons.",
+        "paid_delta": 2,
+        "notes": "Corporate futsal league quarter-final.",
     },
     {
         "username": "demo.briana",
-        "venue": "Star Wars Themed Venue",
+        "venue": "Harborview Badminton Center",
         "paid": True,
-        "start_delta": 5,
+        "start_delta": 10,
         "duration": 1,
-        "paid_delta": 4,
-        "notes": "Lightsaber doubles tournament for premium members.",
+        "paid_delta": 7,
+        "notes": "Doubles ladder tournament for regional club members.",
     },
     {
         "username": "demo.chloe",
-        "venue": "Marvel Irawan Futbol Dome",
+        "venue": "Summit Court Arena",
         "paid": False,
-        "start_delta": 9,
-        "duration": 1,
+        "start_delta": 15,
+        "duration": 2,
         "paid_delta": None,
-        "notes": "Junior academy friendly awaiting payment confirmation.",
-    },
-    {
-        "username": "demo.darius",
-        "venue": "Harborview Badminton Center",
-        "paid": True,
-        "start_delta": 12,
-        "duration": 1,
-        "paid_delta": 10,
-        "notes": "Regional club doubles ladder finals.",
+        "notes": "Weekend youth development camp (pending payment).",
     },
     {
         "username": "demo.alex",
-        "venue": "Star Wars Themed Venue",
+        "venue": "Harborview Badminton Center",
         "paid": True,
-        "start_delta": 14,
-        "duration": 2,
-        "paid_delta": 13,
-        "notes": "Weekend immersive tennis bootcamp.",
+        "start_delta": 1,
+        "duration": 1,
+        "paid_delta": 0,
+        "notes": "Casual evening session with coaching support.",
+    },
+    {
+        "username": "demo.darius",
+        "venue": "Aurora Sports Dome",
+        "paid": True,
+        "start_delta": 13,
+        "duration": 1,
+        "paid_delta": 9,
+        "notes": "Friendly futsal meetup celebrating a birthday.",
     },
     {
         "username": "demo.briana",
-        "venue": "Harborview Badminton Center",
+        "venue": "Summit Court Arena",
         "paid": True,
-        "start_delta": 17,
+        "start_delta": 18,
         "duration": 1,
         "paid_delta": 16,
-        "notes": "Charity ladder showcase with live streaming booth.",
+        "notes": "Three-on-three charity showcase for alumni.",
     },
 ]
 
@@ -149,21 +149,12 @@ def _get_or_create_users() -> dict[str, UserModel]:
                 "email": payload["email"],
             },
         )
-        fields_to_update: list[str] = []
-        if user.first_name != payload["first_name"]:
-            user.first_name = payload["first_name"]
-            fields_to_update.append("first_name")
-        if user.last_name != payload["last_name"]:
-            user.last_name = payload["last_name"]
-            fields_to_update.append("last_name")
-        if user.email != payload["email"]:
-            user.email = payload["email"]
-            fields_to_update.append("email")
         if created:
             user.set_password(payload["password"])
-            fields_to_update.append("password")
-        if fields_to_update:
-            user.save(update_fields=fields_to_update)
+            user.save(update_fields=["password"])
+        elif not user.email:
+            user.email = payload["email"]
+            user.save(update_fields=["email"])
         users[user.username] = user
     return users
 
@@ -171,7 +162,7 @@ def _get_or_create_users() -> dict[str, UserModel]:
 def _get_or_create_venues() -> dict[str, Venue]:
     venues: dict[str, Venue] = {}
     for payload in SAMPLE_VENUES:
-        venue, created = Venue.objects.get_or_create(
+        venue, _ = Venue.objects.get_or_create(
             title=payload["title"],
             defaults={
                 "type": payload["type"],
@@ -181,13 +172,6 @@ def _get_or_create_venues() -> dict[str, Venue]:
                 "location": payload["location"],
             },
         )
-        fields_to_update: list[str] = []
-        for field_name in ("type", "description", "facilities", "price", "location"):
-            if getattr(venue, field_name) != payload[field_name]:
-                setattr(venue, field_name, payload[field_name])
-                fields_to_update.append(field_name)
-        if fields_to_update and not created:
-            venue.save(update_fields=fields_to_update)
         venues[venue.title] = venue
     return venues
 
@@ -207,41 +191,11 @@ def _create_bookings(users: dict[str, UserModel], venues: dict[str, Venue], *, b
         start_date = base_reference + timedelta(days=int(payload["start_delta"]))
         end_date = start_date + timedelta(days=int(payload["duration"]))
 
-        booking = (
-            Booking.objects.select_related("date")
-            .filter(
-                user=user,
-                venue=venue,
-                date__start_date=start_date,
-            )
-            .first()
-        )
-
-        paid_delta = payload.get("paid_delta")
-        desired_paid = bool(payload["paid"])
-        desired_date_paid = None
-        if desired_paid and paid_delta is not None:
-            desired_date_paid = base_reference + timedelta(days=int(paid_delta))
-            if desired_date_paid > today:
-                desired_date_paid = today
-
-        if booking:
-            fields_to_update: list[str] = []
-            if booking.date.start_date != start_date or booking.date.end_date != end_date:
-                booking.date.start_date = start_date
-                booking.date.end_date = end_date
-                booking.date.save(update_fields=["start_date", "end_date"])
-            if booking.has_been_paid != desired_paid:
-                booking.has_been_paid = desired_paid
-                fields_to_update.append("has_been_paid")
-            if booking.date_paid != desired_date_paid:
-                booking.date_paid = desired_date_paid
-                fields_to_update.append("date_paid")
-            if booking.notes != payload["notes"]:
-                booking.notes = str(payload["notes"])
-                fields_to_update.append("notes")
-            if fields_to_update:
-                booking.save(update_fields=fields_to_update)
+        if Booking.objects.filter(
+            user=user,
+            venue=venue,
+            date__start_date=start_date,
+        ).exists():
             continue
 
         booking_date = BookingDate.objects.create(
@@ -252,24 +206,33 @@ def _create_bookings(users: dict[str, UserModel], venues: dict[str, Venue], *, b
         booking = Booking(
             user=user,
             venue=venue,
-            has_been_paid=desired_paid,
+            has_been_paid=bool(payload["paid"]),
             date=booking_date,
             notes=str(payload["notes"]),
-            date_paid=desired_date_paid,
         )
+
+        paid_delta = payload.get("paid_delta")
+        if booking.has_been_paid and paid_delta is not None:
+            date_paid = base_reference + timedelta(days=int(paid_delta))
+            if date_paid > today:
+                date_paid = today
+            booking.date_paid = date_paid
+
         booking.save()
 
 
 def ensure_sample_data(*, base_date=None) -> None:
-    """Populate the database with demo venues and bookings.
+    """Populate the database with demo venues and bookings when empty.
 
     The admin panel graphs and tables look empty without any data. This helper
     seeds a small set of deterministic demo records so that new environments
-    immediately showcase venue activity and booking analytics. The operation is
-    idempotent: calling it repeatedly refreshes the demo records without
-    duplicating them. The caller can override ``base_date`` for deterministic
-    testing.
+    immediately showcase venue activity and booking analytics. Real data is
+    left untouched: the fixtures only run when no bookings exist yet. The
+    caller can override ``base_date`` for deterministic testing.
     """
+
+    if Booking.objects.exists():
+        return
 
     with transaction.atomic():
         venues = _get_or_create_venues()
