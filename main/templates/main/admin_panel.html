@@ -1,5 +1,10 @@
 {% extends "main/base_admin.html" %}
 
+{% block extra_head %}
+  {{ block.super }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+{% endblock %}
+
 {% block title %}Admin Panel{% endblock %}
 
 {% block content %}
@@ -40,6 +45,34 @@
       </header>
       <div class="content-body">
         <section class="data-section" data-section="venues" aria-label="Venues table">
+          <div class="analytics-grid" aria-label="Venue performance charts">
+            <article class="chart-card">
+              <header class="chart-card__header">
+                <h2 class="chart-card__title">Daily sales</h2>
+                <p class="chart-card__subtitle">Sum of paid bookings per day.</p>
+              </header>
+              <canvas
+                id="venue-sales-chart"
+                class="chart-canvas"
+                role="img"
+                aria-label="Line chart showing venue sales per day"
+              ></canvas>
+              <p class="chart-empty" data-chart-empty="sales">No paid bookings yet.</p>
+            </article>
+            <article class="chart-card">
+              <header class="chart-card__header">
+                <h2 class="chart-card__title">Venue popularity</h2>
+                <p class="chart-card__subtitle">Share of paid bookings by venue.</p>
+              </header>
+              <canvas
+                id="venue-popularity-chart"
+                class="chart-canvas"
+                role="img"
+                aria-label="Doughnut chart showing paid bookings per venue"
+              ></canvas>
+              <p class="chart-empty" data-chart-empty="popularity">No paid bookings yet.</p>
+            </article>
+          </div>
           <div class="table-controls">
             <label class="search-field">
               <span class="sr-only">Search venues</span>
@@ -247,4 +280,6 @@
 
   {{ venues|json_script:"initial-venues" }}
   {{ bookings|json_script:"initial-bookings" }}
+  {{ analytics.sales|json_script:"sales-chart-data" }}
+  {{ analytics.popularity|json_script:"popularity-chart-data" }}
 {% endblock %}

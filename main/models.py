@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 
 class BookingDate(models.Model):
@@ -58,6 +59,7 @@ class Booking(models.Model):
     )
     venue = models.ForeignKey(Venue, related_name="bookings", on_delete=models.CASCADE)
     has_been_paid = models.BooleanField(default=False)
+    date_paid = models.DateField(null=True, blank=True)
     date = models.OneToOneField(BookingDate, related_name="booking", on_delete=models.CASCADE)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -69,3 +71,11 @@ class Booking(models.Model):
     def __str__(self) -> str:  # pragma: no cover - human readable only
         username = self.user.get_username() if self.user else "Unknown user"
         return f"Booking for {username}"
+
+    def save(self, *args, **kwargs) -> None:
+        if self.has_been_paid:
+            if self.date_paid is None:
+                self.date_paid = timezone.localdate()
+        else:
+            self.date_paid = None
+        super().save(*args, **kwargs)

@@ -184,6 +184,66 @@ body.admin-body {
   box-shadow: var(--shadow-lg);
 }
 
+.analytics-grid {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+  .analytics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.chart-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chart-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chart-card__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.chart-card__subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.chart-canvas {
+  width: 100%;
+  min-height: 220px;
+}
+
+.chart-canvas.is-hidden {
+  display: none;
+}
+
+.chart-empty {
+  margin: 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.chart-empty.is-hidden {
+  display: none;
+}
+
 .table-controls {
   display: flex;
   justify-content: flex-end;
