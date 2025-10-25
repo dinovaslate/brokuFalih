@@ -40,7 +40,19 @@
       </header>
       <div class="content-body">
         <section class="data-section" data-section="venues" aria-label="Venues table">
-          <div class="table-wrapper">
+          <div class="table-controls">
+            <label class="search-field">
+              <span class="sr-only">Search venues</span>
+              <input
+                type="search"
+                data-search-input="venues"
+                placeholder="Search venues"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </label>
+          </div>
+          <div class="table-wrapper" data-table-wrapper="venues">
             <table class="data-table">
               <thead>
                 <tr>
@@ -55,7 +67,18 @@
               </thead>
               <tbody id="venues-table-body"></tbody>
             </table>
-            <p class="empty-state" data-empty="venues">No venues available yet.</p>
+          </div>
+          <p
+            class="empty-state"
+            data-empty="venues"
+            data-empty-default="No venues available yet."
+            data-empty-filtered="No venues match your search."
+          >
+            No venues available yet.
+          </p>
+          <div class="table-footer is-hidden" data-table-footer="venues">
+            <p class="table-summary" data-summary="venues"></p>
+            <nav class="pagination" data-pagination="venues" aria-label="Venues pagination"></nav>
           </div>
         </section>
         <section
@@ -63,7 +86,19 @@
           data-section="bookings"
           aria-label="Bookings table"
         >
-          <div class="table-wrapper">
+          <div class="table-controls">
+            <label class="search-field">
+              <span class="sr-only">Search bookings</span>
+              <input
+                type="search"
+                data-search-input="bookings"
+                placeholder="Search bookings"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </label>
+          </div>
+          <div class="table-wrapper" data-table-wrapper="bookings">
             <table class="data-table">
               <thead>
                 <tr>
@@ -77,7 +112,18 @@
               </thead>
               <tbody id="bookings-table-body"></tbody>
             </table>
-            <p class="empty-state" data-empty="bookings">No bookings recorded yet.</p>
+          </div>
+          <p
+            class="empty-state"
+            data-empty="bookings"
+            data-empty-default="No bookings recorded yet."
+            data-empty-filtered="No bookings match your search."
+          >
+            No bookings recorded yet.
+          </p>
+          <div class="table-footer is-hidden" data-table-footer="bookings">
+            <p class="table-summary" data-summary="bookings"></p>
+            <nav class="pagination" data-pagination="bookings" aria-label="Bookings pagination"></nav>
           </div>
         </section>
       </div>
