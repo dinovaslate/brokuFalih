@@ -21,6 +21,12 @@
     {% block extra_head %}{% endblock %}
   </head>
   <body class="admin-body">
+    <div class="admin-gradient-mesh" aria-hidden="true">
+      <span class="mesh mesh-1"></span>
+      <span class="mesh mesh-2 mesh-bounce"></span>
+      <span class="mesh mesh-3"></span>
+      <span class="mesh mesh-4 mesh-bounce"></span>
+    </div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     {% block content %}{% endblock %}
     <script src="{% static 'main/admin.js' %}" defer></script>
