@@ -2,18 +2,23 @@
   color-scheme: light only;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  --bg-gradient: radial-gradient(circle at 10% 20%, #e8f0ff 0%, #f8fbff 45%, #e7f3ff 100%);
-  --mesh-color-1: #6b8bff;
-  --mesh-color-2: #ff8cb0;
-  --mesh-color-3: #7cf2d3;
-  --mesh-color-4: #ffc878;
-  --card-bg: rgba(255, 255, 255, 0.88);
-  --border-color: rgba(255, 255, 255, 0.5);
-  --text-color: #1f2937;
-  --muted-text: #6b7280;
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --shadow-strong: 0 25px 60px rgba(37, 99, 235, 0.15);
+  --bg-gradient: radial-gradient(
+    135% 135% at 6% 18%,
+    rgba(253, 186, 140, 0.38) 0%,
+    #fff7f0 48%,
+    #f6ecff 100%
+  );
+  --mesh-color-1: #ff9f68;
+  --mesh-color-2: #facc15;
+  --mesh-color-3: #60dbd4;
+  --mesh-color-4: #c084fc;
+  --card-bg: rgba(255, 250, 244, 0.9);
+  --border-color: rgba(249, 115, 22, 0.25);
+  --text-color: #3b0b4f;
+  --muted-text: #8f4d83;
+  --primary: #ea580c;
+  --primary-dark: #c2410c;
+  --shadow-strong: 0 28px 70px rgba(234, 88, 12, 0.18);
 }
 
 * {
@@ -37,16 +42,17 @@
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
+  opacity: 0.9;
 }
 
 .gradient-mesh .mesh {
   position: absolute;
   width: clamp(420px, 40vw, 580px);
   height: clamp(420px, 40vw, 580px);
-  filter: blur(60px);
-  opacity: 0.65;
+  filter: blur(58px);
+  opacity: 0.82;
   border-radius: 50%;
-  mix-blend-mode: screen;
+  mix-blend-mode: lighten;
   transform: translate3d(0, 0, 0);
   animation: floatSoft var(--duration) ease-in-out infinite;
 }
@@ -56,7 +62,12 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: radial-gradient(circle at 30% 30%, var(--mesh-color, #fff) 0%, transparent 68%);
+  background: radial-gradient(circle at 30% 30%, var(--mesh-color, #fff) 0%, transparent 58%);
+}
+
+.gradient-mesh .mesh-bounce {
+  animation-name: meshBounce;
+  animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1);
 }
 
 .mesh-1 {
@@ -100,6 +111,24 @@
   }
   70% {
     transform: translate3d(-24px, 20px, 0) scale(0.98);
+  }
+}
+
+@keyframes meshBounce {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  22% {
+    transform: translate3d(26px, -32px, 0) scale(1.05);
+  }
+  45% {
+    transform: translate3d(-16px, -10px, 0) scale(0.97);
+  }
+  72% {
+    transform: translate3d(-28px, 28px, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(18px, 32px, 0) scale(1.01);
   }
 }
 
@@ -149,7 +178,7 @@
   width: 56px;
   height: 56px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.3));
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.12), rgba(234, 88, 12, 0.26));
   color: var(--primary);
   margin: 0 auto;
 }
@@ -158,6 +187,13 @@
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-mesh .mesh {
+    animation: none;
+    transform: none;
+  }
 }
 
 .form-control {
@@ -185,8 +221,8 @@
 
 .form-control input:focus {
   outline: none;
-  border-color: rgba(37, 99, 235, 0.7);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+  border-color: rgba(234, 88, 12, 0.65);
+  box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.18);
 }
 
 .primary-btn,
@@ -207,24 +243,24 @@
 .primary-btn {
   color: #fff;
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 14px 32px rgba(234, 88, 12, 0.28);
 }
 
 .primary-btn:hover,
 .primary-btn:focus-visible {
   transform: translateY(-1px);
-  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 18px 40px rgba(234, 88, 12, 0.32);
 }
 
 .secondary-btn {
-  background: rgba(37, 99, 235, 0.12);
+  background: rgba(234, 88, 12, 0.1);
   color: var(--primary);
-  border: 1px solid rgba(37, 99, 235, 0.2);
+  border: 1px solid rgba(234, 88, 12, 0.22);
 }
 
 .secondary-btn:hover,
 .secondary-btn:focus-visible {
-  background: rgba(37, 99, 235, 0.18);
+  background: rgba(234, 88, 12, 0.16);
 }
 
 .form-link {
@@ -286,7 +322,7 @@
 
 .social-buttons button:hover {
   transform: translateY(-2px);
-  border-color: rgba(37, 99, 235, 0.5);
+  border-color: rgba(234, 88, 12, 0.45);
 }
 
 .switch-link {
@@ -311,7 +347,7 @@
 
 .illustration {
   position: relative;
-  background: linear-gradient(160deg, rgba(37, 99, 235, 0.12), rgba(59, 130, 246, 0.28));
+  background: linear-gradient(160deg, rgba(234, 88, 12, 0.14), rgba(192, 132, 252, 0.28));
   border-radius: 24px;
   padding: 2.5rem 2rem;
   display: flex;
@@ -334,14 +370,14 @@
   position: absolute;
   width: 200px;
   height: 200px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.6), transparent 60%);
+  background: radial-gradient(circle, rgba(250, 204, 21, 0.42), transparent 65%);
   top: -60px;
   right: -40px;
 }
 
 .illustration-caption {
   margin-top: 1.5rem;
-  color: #1e293b;
+  color: var(--text-color);
 }
 
 .illustration-caption h2 {
@@ -372,8 +408,8 @@
   gap: 0.75rem;
   padding: 0.85rem 1rem;
   border-radius: 999px;
-  border: 1px solid rgba(99, 102, 241, 0.15);
-  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(234, 88, 12, 0.18);
+  background: rgba(250, 204, 21, 0.1);
   color: var(--muted-text);
   font-size: 0.9rem;
   transition: background 0.2s ease, border-color 0.2s ease,
@@ -383,14 +419,14 @@
 }
 
 .checkbox:hover {
-  background: rgba(148, 163, 184, 0.18);
-  border-color: rgba(99, 102, 241, 0.25);
+  background: rgba(250, 204, 21, 0.16);
+  border-color: rgba(234, 88, 12, 0.28);
 }
 
 .checkbox:focus-within {
-  background: rgba(37, 99, 235, 0.12);
-  border-color: rgba(37, 99, 235, 0.35);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+  background: rgba(234, 88, 12, 0.12);
+  border-color: rgba(234, 88, 12, 0.35);
+  box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.14);
 }
 
 .checkbox input {
@@ -398,7 +434,7 @@
   width: 20px;
   height: 20px;
   border-radius: 999px;
-  border: 2px solid rgba(15, 23, 42, 0.2);
+  border: 2px solid rgba(59, 7, 100, 0.25);
   background: #fff;
   display: grid;
   place-content: center;
@@ -416,8 +452,8 @@
 }
 
 .checkbox input:checked {
-  border-color: rgba(37, 99, 235, 0.5);
-  background: rgba(37, 99, 235, 0.15);
+  border-color: rgba(234, 88, 12, 0.55);
+  background: rgba(234, 88, 12, 0.2);
 }
 
 .checkbox input:checked::before {
@@ -426,7 +462,7 @@
 
 .checkbox input:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.35);
 }
 
 .checkbox span {
