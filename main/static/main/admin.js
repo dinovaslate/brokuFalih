@@ -611,14 +611,14 @@
 
   function getPopularityColors(count) {
     const palette = [
-      '#2563eb',
-      '#4f46e5',
-      '#0ea5e9',
-      '#14b8a6',
-      '#22c55e',
+      '#ea580c',
       '#f97316',
-      '#ec4899',
+      '#fb923c',
       '#facc15',
+      '#38d4c3',
+      '#c084fc',
+      '#f472b6',
+      '#fb7185',
     ];
     const colors = [];
     for (let index = 0; index < count; index += 1) {
@@ -698,15 +698,15 @@
             {
               label: 'Daily sales',
               data: dataset.data,
-              borderColor: '#2563eb',
-              backgroundColor: 'rgba(37, 99, 235, 0.18)',
+              borderColor: '#ea580c',
+              backgroundColor: 'rgba(234, 88, 12, 0.18)',
               tension: 0.35,
               fill: true,
               pointRadius: 4,
               pointHoverRadius: 6,
               pointBorderWidth: 2,
               pointBackgroundColor: '#ffffff',
-              pointBorderColor: '#2563eb',
+              pointBorderColor: '#ea580c',
               borderWidth: 2,
             },
           ],
