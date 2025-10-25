@@ -17,6 +17,9 @@
       update: (id) => `/api/bookings/${id}/update/`,
       delete: (id) => `/api/bookings/${id}/delete/`,
     },
+    users: {
+      search: '/api/users/search/',
+    },
   };
 
   const sectionConfig = {
@@ -40,6 +43,7 @@
     currentSection: 'venues',
     modalMode: 'create',
     editingId: null,
+    hasUsers: app.dataset.hasUsers === 'true',
   };
 
   function parseInitialData(id) {
@@ -80,6 +84,20 @@
     bookings: entityForm.querySelector('[data-form="bookings"]'),
   };
   const venueSelect = entityForm.querySelector('select[name="venue"]');
+  const autocompleteField = entityForm.querySelector('[data-autocomplete]');
+  const usernameInput = autocompleteField
+    ? autocompleteField.querySelector('input[name="username"]')
+    : null;
+  const userIdInput = autocompleteField
+    ? autocompleteField.querySelector('input[name="user"]')
+    : null;
+  const autocompletePanel = autocompleteField
+    ? autocompleteField.querySelector('[data-autocomplete-panel]')
+    : null;
+  let autocompleteItems = [];
+  let highlightedIndex = -1;
+  let userSearchController = null;
+  let autocompleteDebounceId = null;
 
   function toggleFormSection(section, isActive) {
     if (!section) {
@@ -150,6 +168,183 @@
       return;
     }
     emptyState.classList.toggle('is-visible', !hasItems);
+  }
+
+  function resetAutocompleteState() {
+    autocompleteItems = [];
+    highlightedIndex = -1;
+  }
+
+  function closeAutocomplete() {
+    if (autocompletePanel) {
+      autocompletePanel.hidden = true;
+      autocompletePanel.innerHTML = '';
+    }
+    resetAutocompleteState();
+  }
+
+  function setHighlightedIndex(index) {
+    highlightedIndex = index;
+    if (!autocompletePanel) {
+      return;
+    }
+    const options = autocompletePanel.querySelectorAll('.autocomplete-option');
+    options.forEach((option, optionIndex) => {
+      option.classList.toggle('is-active', optionIndex === highlightedIndex);
+    });
+  }
+
+  function selectAutocompleteItem(index) {
+    const item = autocompleteItems[index];
+    if (!item || !usernameInput) {
+      return;
+    }
+    usernameInput.value = item.username;
+    if (userIdInput) {
+      userIdInput.value = item.id;
+    }
+    closeAutocomplete();
+  }
+
+  function renderAutocomplete(items) {
+    if (!autocompletePanel) {
+      return;
+    }
+    autocompletePanel.innerHTML = '';
+
+    if (!items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'autocomplete-empty';
+      empty.textContent = 'No users found.';
+      autocompletePanel.appendChild(empty);
+      autocompletePanel.hidden = false;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    items.forEach((item, index) => {
+      const option = document.createElement('div');
+      option.className = 'autocomplete-option';
+      option.dataset.index = index.toString();
+
+      const title = document.createElement('strong');
+      title.textContent = item.full_name ? `${item.full_name}` : item.username;
+      option.appendChild(title);
+
+      const subtitle = document.createElement('span');
+      subtitle.textContent = item.full_name
+        ? item.username
+        : item.email || 'No email available';
+      option.appendChild(subtitle);
+
+      option.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+        selectAutocompleteItem(index);
+      });
+
+      fragment.appendChild(option);
+    });
+
+    autocompletePanel.appendChild(fragment);
+    autocompletePanel.hidden = false;
+    setHighlightedIndex(-1);
+  }
+
+  async function fetchUsers(query) {
+    if (!endpoints.users || !endpoints.users.search) {
+      return;
+    }
+    if (userSearchController) {
+      userSearchController.abort();
+    }
+    if (!query || query.length < 2) {
+      closeAutocomplete();
+      return;
+    }
+
+    userSearchController = new AbortController();
+    try {
+      const response = await fetch(
+        `${endpoints.users.search}?q=${encodeURIComponent(query)}`,
+        {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          signal: userSearchController.signal,
+        },
+      );
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+      const payload = await response.json();
+      if (payload.meta && typeof payload.meta.has_users === 'boolean') {
+        state.hasUsers = payload.meta.has_users;
+        updateActionButton();
+      }
+      if (!payload.success) {
+        closeAutocomplete();
+        return;
+      }
+      autocompleteItems = Array.isArray(payload.data) ? payload.data : [];
+      renderAutocomplete(autocompleteItems);
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        return;
+      }
+      console.error(error);
+      closeAutocomplete();
+    } finally {
+      userSearchController = null;
+    }
+  }
+
+  function handleUsernameInput(event) {
+    if (userIdInput) {
+      userIdInput.value = '';
+    }
+    const query = event.target.value.trim();
+    window.clearTimeout(autocompleteDebounceId);
+    autocompleteDebounceId = window.setTimeout(() => {
+      fetchUsers(query);
+    }, 200);
+  }
+
+  function handleUsernameKeydown(event) {
+    if (!autocompleteItems.length) {
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const nextIndex = highlightedIndex + 1 >= autocompleteItems.length ? 0 : highlightedIndex + 1;
+      setHighlightedIndex(nextIndex);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const nextIndex = highlightedIndex <= 0 ? autocompleteItems.length - 1 : highlightedIndex - 1;
+      setHighlightedIndex(nextIndex);
+    } else if (event.key === 'Enter') {
+      if (highlightedIndex >= 0) {
+        event.preventDefault();
+        selectAutocompleteItem(highlightedIndex);
+      }
+    } else if (event.key === 'Escape') {
+      closeAutocomplete();
+    }
+  }
+
+  function initializeAutocomplete() {
+    if (!usernameInput) {
+      return;
+    }
+    usernameInput.addEventListener('input', handleUsernameInput);
+    usernameInput.addEventListener('keydown', handleUsernameKeydown);
+    usernameInput.addEventListener('focus', () => {
+      if (usernameInput.value.trim().length >= 2) {
+        fetchUsers(usernameInput.value.trim());
+      }
+    });
+    usernameInput.addEventListener('blur', () => {
+      window.setTimeout(() => {
+        closeAutocomplete();
+      }, 120);
+    });
   }
 
   function renderVenues() {
@@ -226,7 +421,12 @@
       const row = document.createElement('tr');
 
       const guestCell = document.createElement('td');
-      guestCell.textContent = booking.username;
+      const guestLabel = booking.user
+        ? booking.user.full_name
+          ? `${booking.user.full_name} (${booking.user.username})`
+          : booking.user.username
+        : booking.username || '—';
+      guestCell.textContent = guestLabel;
       row.appendChild(guestCell);
 
       const venueCell = document.createElement('td');
@@ -293,10 +493,21 @@
   function updateActionButton() {
     if (state.currentSection === 'bookings') {
       const hasVenues = state.venues.length > 0;
-      actionButton.disabled = !hasVenues;
-      actionButton.title = hasVenues
-        ? ''
-        : 'Create a venue before adding bookings.';
+      const hasUsers = state.hasUsers;
+      const canCreate = hasVenues && hasUsers;
+      actionButton.disabled = !canCreate;
+      if (!canCreate) {
+        const missing = [];
+        if (!hasVenues) {
+          missing.push('a venue');
+        }
+        if (!hasUsers) {
+          missing.push('a user');
+        }
+        actionButton.title = `Create ${missing.join(' and ')} before adding bookings.`;
+      } else {
+        actionButton.title = '';
+      }
     } else {
       actionButton.disabled = false;
       actionButton.title = '';
@@ -325,6 +536,13 @@
 
   function clearForm() {
     entityForm.reset();
+    if (usernameInput) {
+      usernameInput.value = '';
+    }
+    if (userIdInput) {
+      userIdInput.value = '';
+    }
+    closeAutocomplete();
     if (entityForm.dataset.section === 'bookings') {
       entityForm.querySelector('input[name="has_been_paid"]').checked = false;
     }
@@ -378,6 +596,17 @@
   }
 
   function openModal(mode, section, recordId) {
+    if (section === 'bookings' && mode === 'create') {
+      if (!state.hasUsers) {
+        showToast('Create a user before adding bookings.');
+        return;
+      }
+      if (!state.venues.length) {
+        showToast('Create a venue before adding bookings.');
+        return;
+      }
+    }
+
     state.modalMode = mode;
     state.editingId = recordId || null;
     entityForm.dataset.mode = mode;
@@ -388,6 +617,7 @@
 
     clearForm();
     clearErrors();
+    closeAutocomplete();
 
     if (section === 'bookings') {
       updateVenueSelect();
@@ -410,7 +640,14 @@
       } else if (section === 'bookings') {
         const booking = state.bookings.find((item) => Number(item.id) === Number(recordId));
         if (booking) {
-          entityForm.querySelector('input[name="username"]').value = booking.username || '';
+          if (usernameInput) {
+            usernameInput.value = booking.user
+              ? booking.user.username
+              : booking.username || '';
+          }
+          if (userIdInput) {
+            userIdInput.value = booking.user ? booking.user.id : '';
+          }
           updateVenueSelect(booking.venue ? booking.venue.id : undefined);
           entityForm.querySelector('input[name="start_date"]').value = booking.start_date;
           entityForm.querySelector('input[name="end_date"]').value = booking.end_date;
@@ -420,6 +657,9 @@
       }
     } else if (section === 'bookings') {
       updateVenueSelect();
+      if (userIdInput) {
+        userIdInput.value = '';
+      }
     }
 
     modalTitle.textContent = mode === 'edit'
@@ -432,7 +672,10 @@
   }
 
   function closeModal() {
-    print('Negro');
+    modalBackdrop.hidden = true;
+    modalBackdrop.setAttribute('aria-hidden', 'true');
+    state.editingId = null;
+    closeAutocomplete();
   }
 
   async function refreshFromServer(section) {
@@ -452,6 +695,13 @@
         return;
       }
       state[section] = payload.data;
+      if (
+        section === 'bookings'
+        && payload.meta
+        && typeof payload.meta.has_users === 'boolean'
+      ) {
+        state.hasUsers = payload.meta.has_users;
+      }
       if (section === 'venues') {
         renderVenues();
         updateVenueSelect();
@@ -539,6 +789,7 @@
         });
         renderBookings();
       } else if (section === 'bookings') {
+        state.hasUsers = true;
         if (mode === 'edit') {
           state.bookings = state.bookings.map((item) => (Number(item.id) === Number(payload.data.id) ? payload.data : item));
         } else {
@@ -547,11 +798,7 @@
         renderBookings();
       }
 
-      (() => {
-        modalBackdrop.hidden = true;
-        modalBackdrop.setAttribute('aria-hidden', 'true');
-        state.editingId = null;
-      })();
+      closeModal();
       showToast(mode === 'edit' ? 'Updated successfully!' : 'Created successfully!');
     } catch (error) {
       console.error(error);
@@ -616,17 +863,13 @@
 
   document.querySelectorAll('[data-action="close-modal"]').forEach((button) => {
     button.addEventListener('click', () => {
-      modalBackdrop.hidden = true;
-      modalBackdrop.setAttribute('aria-hidden', 'true');
-      state.editingId = null;
+      closeModal();
     });
   });
 
   modalBackdrop.addEventListener('click', (event) => {
     if (event.target === modalBackdrop) {
-      modalBackdrop.hidden = true;
-      modalBackdrop.setAttribute('aria-hidden', 'true');
-      state.editingId = null;
+      closeModal();
     }
   });
 
@@ -654,6 +897,7 @@
     }
   });
 
+  initializeAutocomplete();
   renderVenues();
   renderBookings();
   updateHeader(state.currentSection);

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -33,7 +34,12 @@ class Venue(models.Model):
 
 
 class Booking(models.Model):
-    username = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="bookings",
+        on_delete=models.CASCADE,
+        null=True,
+    )
     venue = models.ForeignKey(Venue, related_name="bookings", on_delete=models.CASCADE)
     has_been_paid = models.BooleanField(default=False)
     date = models.OneToOneField(BookingDate, related_name="booking", on_delete=models.CASCADE)
@@ -45,4 +51,5 @@ class Booking(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self) -> str:  # pragma: no cover - human readable only
-        return f"Booking for {self.username}"
+        username = self.user.get_username() if self.user else "Unknown user"
+        return f"Booking for {username}"

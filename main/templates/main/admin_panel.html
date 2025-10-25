@@ -3,7 +3,12 @@
 {% block title %}Admin Panel{% endblock %}
 
 {% block content %}
-  <div class="admin-layout" id="admin-app" data-active-section="venues">
+  <div
+    class="admin-layout"
+    id="admin-app"
+    data-active-section="venues"
+    data-has-users="{{ has_users|yesno:'true,false' }}"
+  >
     <aside class="sidebar">
       <div class="sidebar-header">
         <span class="sidebar-logo">Cloud Docs</span>
@@ -119,7 +124,18 @@
           <div data-form="bookings" class="form-grid is-hidden">
             <label>
               <span>Guest username</span>
-              <input type="text" name="username" required maxlength="255" />
+              <div class="autocomplete-field" data-autocomplete>
+                <input
+                  type="text"
+                  name="username"
+                  required
+                  maxlength="255"
+                  autocomplete="off"
+                  placeholder="Search users by name or email"
+                />
+                <input type="hidden" name="user" />
+                <div class="autocomplete-panel" data-autocomplete-panel hidden></div>
+              </div>
             </label>
             <label>
               <span>Venue</span>

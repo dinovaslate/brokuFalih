@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import (
     HttpRequest,
     HttpResponse,
@@ -55,13 +56,28 @@ def _serialize_venue(venue: Venue) -> dict[str, object]:
         "image_url": venue.image.url if venue.image else "",
         "created_at": venue.created_at.isoformat(),
         "updated_at": venue.updated_at.isoformat(),
+}
+
+
+def _serialize_user(user) -> dict[str, object] | None:
+    if not user:
+        return None
+    full_name = user.get_full_name().strip()
+    display_name = full_name or user.get_username()
+    return {
+        "id": user.id,
+        "username": user.get_username(),
+        "full_name": full_name,
+        "email": user.email,
+        "display_name": display_name,
     }
 
 
 def _serialize_booking(booking: Booking) -> dict[str, object]:
     return {
         "id": booking.id,
-        "username": booking.username,
+        "username": booking.user.get_username() if booking.user else "",
+        "user": _serialize_user(booking.user),
         "venue": {
             "id": booking.venue_id,
             "title": booking.venue.title,
@@ -132,11 +148,16 @@ def admin_panel(request: HttpRequest) -> HttpResponse:
     if forbidden:
         return forbidden
 
+    User = get_user_model()
     venues = [_serialize_venue(venue) for venue in Venue.objects.all()]
-    bookings = [_serialize_booking(booking) for booking in Booking.objects.select_related("venue", "date")]
+    bookings = [
+        _serialize_booking(booking)
+        for booking in Booking.objects.select_related("venue", "date", "user")
+    ]
     context = {
         "venues": venues,
         "bookings": bookings,
+        "has_users": User.objects.exists(),
     }
     return render(request, "main/admin_panel.html", context)
 
@@ -208,9 +229,16 @@ def bookings_list_api(request: HttpRequest) -> JsonResponse:
 
     bookings = [
         _serialize_booking(booking)
-        for booking in Booking.objects.select_related("venue", "date")
+        for booking in Booking.objects.select_related("venue", "date", "user")
     ]
-    return JsonResponse({"success": True, "data": bookings})
+    User = get_user_model()
+    return JsonResponse(
+        {
+            "success": True,
+            "data": bookings,
+            "meta": {"has_users": User.objects.exists()},
+        }
+    )
 
 
 @login_required
@@ -255,3 +283,36 @@ def bookings_delete_api(request: HttpRequest, pk: int) -> JsonResponse:
     booking.date.delete()
     booking.delete()
     return JsonResponse({"success": True})
+
+
+@login_required
+@require_GET
+def users_search_api(request: HttpRequest) -> JsonResponse:
+    forbidden = _forbid_if_not_staff(request)
+    if forbidden:
+        return forbidden
+
+    query = request.GET.get("q", "").strip()
+    User = get_user_model()
+
+    if not query:
+        results = []
+    else:
+        results = [
+            _serialize_user(user)
+            for user in User.objects.filter(
+                Q(username__icontains=query)
+                | Q(email__icontains=query)
+                | Q(first_name__icontains=query)
+                | Q(last_name__icontains=query)
+            )
+            .order_by("username")[:10]
+        ]
+
+    return JsonResponse(
+        {
+            "success": True,
+            "data": results,
+            "meta": {"has_users": User.objects.exists()},
+        }
+    )

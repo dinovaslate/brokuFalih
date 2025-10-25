@@ -20,4 +20,5 @@ urlpatterns = [
     path("api/bookings/create/", views.bookings_create_api, name="bookings_create_api"),
     path("api/bookings/<int:pk>/update/", views.bookings_update_api, name="bookings_update_api"),
     path("api/bookings/<int:pk>/delete/", views.bookings_delete_api, name="bookings_delete_api"),
+    path("api/users/search/", views.users_search_api, name="users_search_api"),
 ]
