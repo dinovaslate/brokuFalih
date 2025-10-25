@@ -51,49 +51,6 @@ body.landing-body {
   pointer-events: none;
 }
 
-.light-leak-stage {
-  position: fixed;
-  inset: -20vh -20vw;
-  z-index: 0;
-  pointer-events: none;
-  mix-blend-mode: screen;
-  opacity: 0.7;
-}
-
-.light-leak {
-  position: absolute;
-  width: clamp(28rem, 40vw, 48rem);
-  height: clamp(28rem, 40vw, 48rem);
-  border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.65;
-  transform: translate3d(0, 0, 0) scale(1);
-}
-
-.light-leak--cyan {
-  background: radial-gradient(circle, rgba(79, 199, 255, 0.45), transparent 70%);
-  top: 20%;
-  left: 10%;
-}
-
-.light-leak--magenta {
-  background: radial-gradient(circle, rgba(214, 120, 255, 0.4), transparent 68%);
-  bottom: 10%;
-  right: 16%;
-}
-
-.light-leak--amber {
-  background: radial-gradient(circle, rgba(255, 184, 94, 0.38), transparent 72%);
-  top: 55%;
-  left: 45%;
-}
-
-.light-leak--violet {
-  background: radial-gradient(circle, rgba(140, 116, 255, 0.35), transparent 70%);
-  bottom: 35%;
-  right: 45%;
-}
-
 .cosmic-backdrop .glow {
   position: absolute;
   width: 45vw;
@@ -769,16 +726,6 @@ body.landing-body {
 
   .closing-card {
     padding: 2rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .light-leak-stage {
-    opacity: 0.35;
-  }
-
-  .light-leak {
-    transition: none !important;
   }
 }
 

@@ -1,29 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const motionPreference =
-    typeof window.matchMedia === "function"
-      ? window.matchMedia("(prefers-reduced-motion: reduce)")
-      : null;
-  const prefersReducedMotion = motionPreference?.matches ?? false;
-
   const animated = document.querySelectorAll("[data-animate]");
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           entry.target.classList.add("is-visible");
-          if (!prefersReducedMotion && typeof gsap === "function") {
-            gsap.fromTo(
-              entry.target,
-              { y: 60, opacity: 0 },
-              {
-                y: 0,
-                opacity: 1,
-                duration: 0.9,
-                ease: "expo.out",
-                overwrite: "auto",
-              }
-            );
-          }
           observer.unobserve(entry.target);
         }
       });
@@ -62,51 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  if (!prefersReducedMotion) {
-    window.addEventListener("mousemove", parallax);
-  }
-
-  if (!prefersReducedMotion && typeof gsap === "function") {
-    const leaks = document.querySelectorAll("[data-leak]");
-    leaks.forEach((leak, index) => {
-      gsap.set(leak, {
-        xPercent: gsap.utils.random(-20, 20),
-        yPercent: gsap.utils.random(-25, 25),
-        rotate: gsap.utils.random(-18, 18),
-        scale: gsap.utils.random(0.85, 1.1),
-      });
-
-      const wander = () => {
-        gsap.to(leak, {
-          duration: gsap.utils.random(12, 20),
-          xPercent: gsap.utils.random(-65, 65),
-          yPercent: gsap.utils.random(-55, 55),
-          scale: gsap.utils.random(0.8, 1.25),
-          rotate: gsap.utils.random(-28, 28),
-          ease: "sine.inOut",
-          onComplete: wander,
-        });
-      };
-
-      gsap.delayedCall(index * 0.6, wander);
-    });
-
-    gsap.utils.toArray(".hero .orb").forEach((orb, index) => {
-      gsap.to(orb, {
-        duration: 6 + index * 1.2,
-        y: "+=22",
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-      });
-    });
-
-    const sparkle = gsap.timeline({ repeat: -1, yoyo: true, defaults: { ease: "sine.inOut" } });
-    sparkle
-      .to(".dashboard-preview", { duration: 4, rotateY: -6, rotateX: 5 })
-      .to(".dashboard-preview .sparkline", { duration: 3, opacity: 0.5 }, 0)
-      .to(".dashboard-preview .sparkline", { duration: 3, opacity: 1 }, ">-1.5");
-  }
+  window.addEventListener("mousemove", parallax);
 
   // Fallback: ensure counters display their target values if anime.js is unavailable
   if (typeof anime !== "function") {
