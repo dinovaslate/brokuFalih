@@ -124,7 +124,7 @@
           <div data-form="bookings" class="form-grid is-hidden">
             <label>
               <span>Guest username</span>
-              <div class="autocomplete-field" data-autocomplete>
+              <div class="autocomplete-field" data-autocomplete="user">
                 <input
                   type="text"
                   name="username"
@@ -139,7 +139,18 @@
             </label>
             <label>
               <span>Venue</span>
-              <select name="venue" required></select>
+              <div class="autocomplete-field" data-autocomplete="venue">
+                <input
+                  type="text"
+                  name="venue_label"
+                  required
+                  maxlength="255"
+                  autocomplete="off"
+                  placeholder="Search venues by title or location"
+                />
+                <input type="hidden" name="venue" />
+                <div class="autocomplete-panel" data-autocomplete-panel hidden></div>
+              </div>
             </label>
             <div class="date-grid">
               <label>

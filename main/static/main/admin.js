@@ -83,21 +83,8 @@
     venues: entityForm.querySelector('[data-form="venues"]'),
     bookings: entityForm.querySelector('[data-form="bookings"]'),
   };
-  const venueSelect = entityForm.querySelector('select[name="venue"]');
-  const autocompleteField = entityForm.querySelector('[data-autocomplete]');
-  const usernameInput = autocompleteField
-    ? autocompleteField.querySelector('input[name="username"]')
-    : null;
-  const userIdInput = autocompleteField
-    ? autocompleteField.querySelector('input[name="user"]')
-    : null;
-  const autocompletePanel = autocompleteField
-    ? autocompleteField.querySelector('[data-autocomplete-panel]')
-    : null;
-  let autocompleteItems = [];
-  let highlightedIndex = -1;
+  const autocompleteControllers = {};
   let userSearchController = null;
-  let autocompleteDebounceId = null;
 
   function toggleFormSection(section, isActive) {
     if (!section) {
@@ -170,180 +157,328 @@
     emptyState.classList.toggle('is-visible', !hasItems);
   }
 
-  function resetAutocompleteState() {
-    autocompleteItems = [];
-    highlightedIndex = -1;
-  }
-
-  function closeAutocomplete() {
-    if (autocompletePanel) {
-      autocompletePanel.hidden = true;
-      autocompletePanel.innerHTML = '';
-    }
-    resetAutocompleteState();
-  }
-
-  function setHighlightedIndex(index) {
-    highlightedIndex = index;
-    if (!autocompletePanel) {
-      return;
-    }
-    const options = autocompletePanel.querySelectorAll('.autocomplete-option');
-    options.forEach((option, optionIndex) => {
-      option.classList.toggle('is-active', optionIndex === highlightedIndex);
-    });
-  }
-
-  function selectAutocompleteItem(index) {
-    const item = autocompleteItems[index];
-    if (!item || !usernameInput) {
-      return;
-    }
-    usernameInput.value = item.username;
-    if (userIdInput) {
-      userIdInput.value = item.id;
-    }
-    closeAutocomplete();
-  }
-
-  function renderAutocomplete(items) {
-    if (!autocompletePanel) {
-      return;
-    }
-    autocompletePanel.innerHTML = '';
-
-    if (!items.length) {
-      const empty = document.createElement('div');
-      empty.className = 'autocomplete-empty';
-      empty.textContent = 'No users found.';
-      autocompletePanel.appendChild(empty);
-      autocompletePanel.hidden = false;
-      return;
+  function createAutocompleteController(fieldElement, options = {}) {
+    if (!fieldElement) {
+      return null;
     }
 
-    const fragment = document.createDocumentFragment();
-    items.forEach((item, index) => {
-      const option = document.createElement('div');
-      option.className = 'autocomplete-option';
-      option.dataset.index = index.toString();
+    const textInput = fieldElement.querySelector('input[type="text"]');
+    const hiddenInput = fieldElement.querySelector('input[type="hidden"]');
+    const panel = fieldElement.querySelector('[data-autocomplete-panel]');
 
-      const title = document.createElement('strong');
-      title.textContent = item.full_name ? `${item.full_name}` : item.username;
-      option.appendChild(title);
+    if (!textInput || !panel) {
+      return null;
+    }
 
-      const subtitle = document.createElement('span');
-      subtitle.textContent = item.full_name
-        ? item.username
-        : item.email || 'No email available';
-      option.appendChild(subtitle);
+    const settings = {
+      minChars: 1,
+      debounce: 200,
+      ...options,
+    };
 
-      option.addEventListener('mousedown', (event) => {
-        event.preventDefault();
-        selectAutocompleteItem(index);
+    let items = [];
+    let highlightedIndex = -1;
+    let debounceId = null;
+    let lastRequestId = 0;
+
+    function setHighlightedIndex(index) {
+      highlightedIndex = index;
+      const optionsNodes = panel.querySelectorAll('.autocomplete-option');
+      optionsNodes.forEach((option, optionIndex) => {
+        option.classList.toggle('is-active', optionIndex === highlightedIndex);
+        if (optionIndex === highlightedIndex) {
+          option.scrollIntoView({ block: 'nearest' });
+        }
+      });
+    }
+
+    function close() {
+      panel.hidden = true;
+      panel.innerHTML = '';
+      items = [];
+      highlightedIndex = -1;
+      lastRequestId += 1;
+      if (typeof settings.onClose === 'function') {
+        settings.onClose();
+      }
+    }
+
+    function setSelection(displayValue = '', hiddenValue = '') {
+      textInput.value = displayValue;
+      if (hiddenInput) {
+        hiddenInput.value = hiddenValue;
+      }
+    }
+
+    function renderOptions(list) {
+      panel.innerHTML = '';
+
+      if (!list.length) {
+        const empty = document.createElement('div');
+        empty.className = 'autocomplete-empty';
+        empty.textContent = typeof settings.emptyMessage === 'function'
+          ? settings.emptyMessage()
+          : settings.emptyMessage || 'No results found.';
+        panel.appendChild(empty);
+        panel.hidden = false;
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      list.forEach((item, index) => {
+        const option = document.createElement('div');
+        option.className = 'autocomplete-option';
+        option.dataset.index = index.toString();
+
+        const primary = document.createElement('strong');
+        const primaryText = settings.getPrimaryText ? settings.getPrimaryText(item) : '';
+        primary.textContent = primaryText || '';
+        option.appendChild(primary);
+
+        const secondaryText = settings.getSecondaryText ? settings.getSecondaryText(item) : '';
+        if (secondaryText) {
+          const secondary = document.createElement('span');
+          secondary.textContent = secondaryText;
+          option.appendChild(secondary);
+        }
+
+        option.addEventListener('mousedown', (event) => {
+          event.preventDefault();
+          select(index);
+        });
+
+        fragment.appendChild(option);
       });
 
-      fragment.appendChild(option);
-    });
-
-    autocompletePanel.appendChild(fragment);
-    autocompletePanel.hidden = false;
-    setHighlightedIndex(-1);
-  }
-
-  async function fetchUsers(query) {
-    if (!endpoints.users || !endpoints.users.search) {
-      return;
-    }
-    if (userSearchController) {
-      userSearchController.abort();
-    }
-    if (!query || query.length < 2) {
-      closeAutocomplete();
-      return;
+      panel.appendChild(fragment);
+      panel.hidden = false;
+      setHighlightedIndex(-1);
     }
 
-    userSearchController = new AbortController();
-    try {
-      const response = await fetch(
-        `${endpoints.users.search}?q=${encodeURIComponent(query)}`,
-        {
-          headers: { 'X-Requested-With': 'XMLHttpRequest' },
-          signal: userSearchController.signal,
-        },
-      );
-      if (!response.ok) {
-        throw new Error('Search failed');
-      }
-      const payload = await response.json();
-      if (payload.meta && typeof payload.meta.has_users === 'boolean') {
-        state.hasUsers = payload.meta.has_users;
-        updateActionButton();
-      }
-      if (!payload.success) {
-        closeAutocomplete();
+    function select(index) {
+      const item = items[index];
+      if (!item) {
         return;
       }
-      autocompleteItems = Array.isArray(payload.data) ? payload.data : [];
-      renderAutocomplete(autocompleteItems);
-    } catch (error) {
-      if (error.name === 'AbortError') {
+      const display = settings.getInputValue ? settings.getInputValue(item) : '';
+      const value = settings.getHiddenValue ? settings.getHiddenValue(item) : '';
+      setSelection(display, value);
+      if (typeof settings.onSelect === 'function') {
+        settings.onSelect(item);
+      }
+      close();
+    }
+
+    async function requestItems(query) {
+      if (typeof settings.fetchItems !== 'function') {
         return;
       }
-      console.error(error);
-      closeAutocomplete();
-    } finally {
-      userSearchController = null;
-    }
-  }
 
-  function handleUsernameInput(event) {
-    if (userIdInput) {
-      userIdInput.value = '';
-    }
-    const query = event.target.value.trim();
-    window.clearTimeout(autocompleteDebounceId);
-    autocompleteDebounceId = window.setTimeout(() => {
-      fetchUsers(query);
-    }, 200);
-  }
+      const requestId = ++lastRequestId;
 
-  function handleUsernameKeydown(event) {
-    if (!autocompleteItems.length) {
-      return;
+      try {
+        const result = await settings.fetchItems(query);
+        if (requestId !== lastRequestId) {
+          return;
+        }
+        items = Array.isArray(result) ? result : [];
+        renderOptions(items);
+      } catch (error) {
+        if (error && error.name === 'AbortError') {
+          return;
+        }
+        console.error(error);
+        close();
+      }
     }
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      const nextIndex = highlightedIndex + 1 >= autocompleteItems.length ? 0 : highlightedIndex + 1;
-      setHighlightedIndex(nextIndex);
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      const nextIndex = highlightedIndex <= 0 ? autocompleteItems.length - 1 : highlightedIndex - 1;
-      setHighlightedIndex(nextIndex);
-    } else if (event.key === 'Enter') {
-      if (highlightedIndex >= 0) {
+
+    function handleInput(event) {
+      if (hiddenInput) {
+        hiddenInput.value = '';
+      }
+      const query = event.target.value.trim();
+      window.clearTimeout(debounceId);
+      if (!query || query.length < settings.minChars) {
+        close();
+        return;
+      }
+      debounceId = window.setTimeout(() => {
+        requestItems(query);
+      }, settings.debounce);
+    }
+
+    function handleKeydown(event) {
+      if (!items.length) {
+        if (event.key === 'Escape') {
+          close();
+        }
+        return;
+      }
+      if (event.key === 'ArrowDown') {
         event.preventDefault();
-        selectAutocompleteItem(highlightedIndex);
+        const nextIndex = highlightedIndex + 1 >= items.length ? 0 : highlightedIndex + 1;
+        setHighlightedIndex(nextIndex);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const nextIndex = highlightedIndex <= 0 ? items.length - 1 : highlightedIndex - 1;
+        setHighlightedIndex(nextIndex);
+      } else if (event.key === 'Enter') {
+        if (highlightedIndex >= 0) {
+          event.preventDefault();
+          select(highlightedIndex);
+        }
+      } else if (event.key === 'Escape') {
+        close();
       }
-    } else if (event.key === 'Escape') {
-      closeAutocomplete();
+    }
+
+    textInput.addEventListener('input', handleInput);
+    textInput.addEventListener('keydown', handleKeydown);
+    textInput.addEventListener('focus', () => {
+      const query = textInput.value.trim();
+      if (query.length >= settings.minChars) {
+        requestItems(query);
+      }
+    });
+    textInput.addEventListener('blur', () => {
+      window.setTimeout(() => {
+        close();
+      }, 120);
+    });
+
+    return {
+      input: textInput,
+      hiddenInput,
+      close,
+      clear() {
+        setSelection('', '');
+        close();
+      },
+      setSelection,
+      refresh() {
+        const query = textInput.value.trim();
+        if (query.length >= settings.minChars) {
+          requestItems(query);
+        }
+      },
+    };
+  }
+
+  function closeAllAutocompletes() {
+    Object.values(autocompleteControllers).forEach((controller) => {
+      if (controller) {
+        controller.close();
+      }
+    });
+  }
+
+  function clearAutocompletes() {
+    Object.values(autocompleteControllers).forEach((controller) => {
+      if (controller) {
+        controller.clear();
+      }
+    });
+  }
+
+  function syncVenueAutocompleteSelection() {
+    const venueController = autocompleteControllers.venue;
+    if (!venueController || !venueController.hiddenInput) {
+      return;
+    }
+    const currentValue = venueController.hiddenInput.value;
+    if (!currentValue) {
+      return;
+    }
+    const matchingVenue = state.venues.find((venue) => Number(venue.id) === Number(currentValue));
+    if (matchingVenue) {
+      venueController.setSelection(matchingVenue.title || '', matchingVenue.id);
+    } else {
+      venueController.setSelection('', '');
     }
   }
 
-  function initializeAutocomplete() {
-    if (!usernameInput) {
-      return;
-    }
-    usernameInput.addEventListener('input', handleUsernameInput);
-    usernameInput.addEventListener('keydown', handleUsernameKeydown);
-    usernameInput.addEventListener('focus', () => {
-      if (usernameInput.value.trim().length >= 2) {
-        fetchUsers(usernameInput.value.trim());
-      }
+  const userAutocompleteField = entityForm.querySelector('[data-autocomplete="user"]');
+  if (userAutocompleteField) {
+    autocompleteControllers.user = createAutocompleteController(userAutocompleteField, {
+      minChars: 2,
+      debounce: 220,
+      fetchItems: async (query) => {
+        if (!endpoints.users || !endpoints.users.search) {
+          return [];
+        }
+        if (userSearchController) {
+          userSearchController.abort();
+        }
+        userSearchController = new AbortController();
+        try {
+          const response = await fetch(
+            `${endpoints.users.search}?q=${encodeURIComponent(query)}`,
+            {
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },
+              signal: userSearchController.signal,
+            },
+          );
+          if (!response.ok) {
+            throw new Error('Search failed');
+          }
+          const payload = await response.json();
+          if (payload.meta && typeof payload.meta.has_users === 'boolean') {
+            state.hasUsers = payload.meta.has_users;
+            updateActionButton();
+          }
+          if (!payload.success) {
+            return [];
+          }
+          return Array.isArray(payload.data) ? payload.data : [];
+        } finally {
+          userSearchController = null;
+        }
+      },
+      getPrimaryText: (item) => (item.full_name ? item.full_name : item.username),
+      getSecondaryText: (item) => {
+        if (item.full_name) {
+          return item.username;
+        }
+        return item.email || '';
+      },
+      getInputValue: (item) => item.username || '',
+      getHiddenValue: (item) => (item.id !== undefined ? item.id : ''),
+      emptyMessage: () => (state.hasUsers ? 'No users found.' : 'No users available yet.'),
+      onSelect: () => {
+        state.hasUsers = true;
+        updateActionButton();
+      },
+      onClose: () => {
+        if (userSearchController) {
+          userSearchController.abort();
+          userSearchController = null;
+        }
+      },
     });
-    usernameInput.addEventListener('blur', () => {
-      window.setTimeout(() => {
-        closeAutocomplete();
-      }, 120);
+  }
+
+  const venueAutocompleteField = entityForm.querySelector('[data-autocomplete="venue"]');
+  if (venueAutocompleteField) {
+    autocompleteControllers.venue = createAutocompleteController(venueAutocompleteField, {
+      minChars: 1,
+      debounce: 160,
+      fetchItems: async (query) => {
+        const normalized = query.trim().toLowerCase();
+        if (!normalized) {
+          return [];
+        }
+        const matches = state.venues.filter((venue) => {
+          const title = venue.title ? venue.title.toLowerCase() : '';
+          const location = venue.location ? venue.location.toLowerCase() : '';
+          return title.includes(normalized) || location.includes(normalized);
+        });
+        return matches.slice(0, 8);
+      },
+      getPrimaryText: (item) => item.title || '',
+      getSecondaryText: (item) => item.location || '',
+      getInputValue: (item) => item.title || '',
+      getHiddenValue: (item) => (item.id !== undefined ? item.id : ''),
+      emptyMessage: () => (state.venues.length ? 'No venues found.' : 'Create a venue first.'),
     });
   }
 
@@ -473,13 +608,6 @@
     toggleEmptyState('bookings');
   }
 
-  function refreshTables() {
-    renderVenues();
-    renderBookings();
-    updateVenueSelect();
-    updateActionButton();
-  }
-
   function updateHeader(section) {
     const config = sectionConfig[section];
     if (!config) {
@@ -536,15 +664,12 @@
 
   function clearForm() {
     entityForm.reset();
-    if (usernameInput) {
-      usernameInput.value = '';
-    }
-    if (userIdInput) {
-      userIdInput.value = '';
-    }
-    closeAutocomplete();
+    clearAutocompletes();
     if (entityForm.dataset.section === 'bookings') {
-      entityForm.querySelector('input[name="has_been_paid"]').checked = false;
+      const paidField = entityForm.querySelector('input[name="has_been_paid"]');
+      if (paidField) {
+        paidField.checked = false;
+      }
     }
   }
 
@@ -565,34 +690,6 @@
     }
     modalErrors.innerHTML = `<ul>${messages.map((msg) => `<li>${msg}</li>`).join('')}</ul>`;
     modalErrors.hidden = false;
-  }
-
-  function updateVenueSelect(selectedId) {
-    if (!venueSelect) {
-      return;
-    }
-    venueSelect.innerHTML = '';
-    if (!state.venues.length) {
-      const option = document.createElement('option');
-      option.value = '';
-      option.textContent = 'Create a venue first';
-      venueSelect.appendChild(option);
-      venueSelect.disabled = true;
-      return;
-    }
-    venueSelect.disabled = false;
-    state.venues.forEach((venue) => {
-      const option = document.createElement('option');
-      option.value = venue.id;
-      option.textContent = venue.title;
-      if (selectedId && Number(selectedId) === Number(venue.id)) {
-        option.selected = true;
-      }
-      venueSelect.appendChild(option);
-    });
-    if (selectedId === undefined && state.venues.length) {
-      venueSelect.value = state.venues[0].id;
-    }
   }
 
   function openModal(mode, section, recordId) {
@@ -617,11 +714,7 @@
 
     clearForm();
     clearErrors();
-    closeAutocomplete();
-
-    if (section === 'bookings') {
-      updateVenueSelect();
-    }
+    closeAllAutocompletes();
 
     if (mode === 'edit' && recordId) {
       if (section === 'venues') {
@@ -640,15 +733,18 @@
       } else if (section === 'bookings') {
         const booking = state.bookings.find((item) => Number(item.id) === Number(recordId));
         if (booking) {
-          if (usernameInput) {
-            usernameInput.value = booking.user
+          if (autocompleteControllers.user) {
+            const usernameValue = booking.user
               ? booking.user.username
               : booking.username || '';
+            const userIdValue = booking.user ? booking.user.id : '';
+            autocompleteControllers.user.setSelection(usernameValue, userIdValue);
           }
-          if (userIdInput) {
-            userIdInput.value = booking.user ? booking.user.id : '';
+          if (autocompleteControllers.venue) {
+            const venueTitle = booking.venue ? booking.venue.title : '';
+            const venueId = booking.venue ? booking.venue.id : '';
+            autocompleteControllers.venue.setSelection(venueTitle, venueId);
           }
-          updateVenueSelect(booking.venue ? booking.venue.id : undefined);
           entityForm.querySelector('input[name="start_date"]').value = booking.start_date;
           entityForm.querySelector('input[name="end_date"]').value = booking.end_date;
           entityForm.querySelector('input[name="has_been_paid"]').checked = Boolean(booking.has_been_paid);
@@ -656,9 +752,11 @@
         }
       }
     } else if (section === 'bookings') {
-      updateVenueSelect();
-      if (userIdInput) {
-        userIdInput.value = '';
+      if (autocompleteControllers.user) {
+        autocompleteControllers.user.setSelection('', '');
+      }
+      if (autocompleteControllers.venue) {
+        autocompleteControllers.venue.setSelection('', '');
       }
     }
 
@@ -675,7 +773,7 @@
     modalBackdrop.hidden = true;
     modalBackdrop.setAttribute('aria-hidden', 'true');
     state.editingId = null;
-    closeAutocomplete();
+    closeAllAutocompletes();
   }
 
   async function refreshFromServer(section) {
@@ -704,7 +802,14 @@
       }
       if (section === 'venues') {
         renderVenues();
-        updateVenueSelect();
+        syncVenueAutocompleteSelection();
+        if (autocompleteControllers.venue) {
+          if (!state.venues.length) {
+            autocompleteControllers.venue.clear();
+          } else {
+            autocompleteControllers.venue.refresh();
+          }
+        }
         if (state.currentSection === 'bookings') {
           // bookings might depend on venues for their display
           renderBookings();
@@ -745,9 +850,21 @@
     }
 
     const submitButton = entityForm.querySelector('button[type="submit"]');
+    clearErrors();
+
+    if (section === 'bookings') {
+      const venueId = formData.get('venue');
+      if (!venueId) {
+        showErrors(['Please choose a venue from the list.']);
+        if (autocompleteControllers.venue && autocompleteControllers.venue.input) {
+          autocompleteControllers.venue.input.focus();
+        }
+        return;
+      }
+    }
+
     submitButton.disabled = true;
     submitButton.classList.add('is-loading');
-    clearErrors();
 
     try {
       const response = await fetch(url, {
@@ -773,7 +890,10 @@
           state.venues.unshift(payload.data);
         }
         renderVenues();
-        updateVenueSelect();
+        syncVenueAutocompleteSelection();
+        if (autocompleteControllers.venue) {
+          autocompleteControllers.venue.refresh();
+        }
         updateActionButton();
         state.bookings = state.bookings.map((booking) => {
           if (booking.venue && Number(booking.venue.id) === Number(payload.data.id)) {
@@ -835,7 +955,14 @@
         state.bookings = state.bookings.filter((item) => item.venue && Number(item.venue.id) !== Number(recordId));
         renderVenues();
         renderBookings();
-        updateVenueSelect();
+        syncVenueAutocompleteSelection();
+        if (autocompleteControllers.venue) {
+          if (!state.venues.length) {
+            autocompleteControllers.venue.clear();
+          } else {
+            autocompleteControllers.venue.refresh();
+          }
+        }
       } else if (section === 'bookings') {
         state.bookings = state.bookings.filter((item) => Number(item.id) !== Number(recordId));
         renderBookings();
@@ -897,7 +1024,6 @@
     }
   });
 
-  initializeAutocomplete();
   renderVenues();
   renderBookings();
   updateHeader(state.currentSection);
