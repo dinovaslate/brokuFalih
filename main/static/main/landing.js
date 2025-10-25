@@ -51,4 +51,44 @@ document.addEventListener("DOMContentLoaded", () => {
       counter.textContent = counter.dataset.counter || counter.textContent;
     });
   }
+
+  const scrollNav = document.querySelector(".scroll-nav");
+  if (scrollNav) {
+    let lastScrollY = window.scrollY;
+    const threshold = 80;
+    let scheduled = false;
+
+    const updateNav = () => {
+      const currentY = window.scrollY;
+      const isScrollingDown = currentY > lastScrollY;
+
+      if (currentY <= threshold) {
+        scrollNav.classList.remove("is-visible");
+      } else if (isScrollingDown) {
+        scrollNav.classList.add("is-visible");
+      } else {
+        scrollNav.classList.remove("is-visible");
+      }
+
+      lastScrollY = currentY;
+      scheduled = false;
+    };
+
+    window.addEventListener("scroll", () => {
+      if (!scheduled) {
+        scheduled = true;
+        window.requestAnimationFrame(updateNav);
+      }
+    });
+
+    scrollNav.addEventListener("focusin", () => {
+      scrollNav.classList.add("is-visible");
+    });
+
+    scrollNav.addEventListener("focusout", () => {
+      if (window.scrollY <= threshold) {
+        scrollNav.classList.remove("is-visible");
+      }
+    });
+  }
 });

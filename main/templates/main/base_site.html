@@ -21,12 +21,29 @@
     {% block extra_head %}{% endblock %}
   </head>
   <body class="landing-body">
+    <nav class="scroll-nav" aria-label="Primary">
+      <div class="scroll-nav__inner">
+        <a class="scroll-nav__brand" href="#top">PitchPilot</a>
+        <ul class="scroll-nav__links">
+          <li><a href="#top">Home</a></li>
+          <li><a href="{% url 'main:dashboard' %}">Profile</a></li>
+        </ul>
+      </div>
+    </nav>
     <div class="cosmic-backdrop" aria-hidden="true">
       <span class="glow glow-1" data-parallax="4"></span>
       <span class="glow glow-2" data-parallax="6"></span>
       <span class="glow glow-3" data-parallax="3"></span>
     </div>
     <main class="landing-main">{% block content %}{% endblock %}</main>
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+        <p>&copy; {% now "Y" %} PitchPilot. Crafted for the next generation of matchday experiences.</p>
+        <nav aria-label="Footer">
+          <a href="#top">Back to top</a>
+        </nav>
+      </div>
+    </footer>
     <script src="{% static 'main/landing.js' %}" defer></script>
     {% block extra_js %}{% endblock %}
   </body>
