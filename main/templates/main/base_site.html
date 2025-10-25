@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}PitchPilot{% endblock %} · PitchPilot Experience</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'main/landing.css' %}" />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+      defer
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"
+      integrity="sha512-udmwcjMEKH2ZpHNRW+tfLsAy/5TIfpVVLwG7BiKU/FvAYsDzxHd+Gj1JX7XjcA1AR5r3nAobRbrFeKlcnXW7Tw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+      defer
+    ></script>
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body class="landing-body">
+    <div class="cosmic-backdrop" aria-hidden="true">
+      <span class="glow glow-1" data-parallax="4"></span>
+      <span class="glow glow-2" data-parallax="6"></span>
+      <span class="glow glow-3" data-parallax="3"></span>
+    </div>
+    <div class="light-leak-stage" aria-hidden="true">
+      <span class="light-leak light-leak--cyan" data-leak></span>
+      <span class="light-leak light-leak--magenta" data-leak></span>
+      <span class="light-leak light-leak--amber" data-leak></span>
+      <span class="light-leak light-leak--violet" data-leak></span>
+    </div>
+    <header class="scroll-nav" data-scroll-nav>
+      <div class="scroll-nav__inner">
+        <a class="scroll-nav__logo" href="#top" aria-label="PitchPilot home">
+          <span aria-hidden="true">PitchPilot</span>
+        </a>
+        <nav aria-label="Primary">
+          <ul class="scroll-nav__links">
+            <li><a href="#top">Home</a></li>
+            <li><a href="#player-profile">Profile</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    <main class="landing-main">{% block content %}{% endblock %}</main>
+    <script src="{% static 'main/landing.js' %}" defer></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

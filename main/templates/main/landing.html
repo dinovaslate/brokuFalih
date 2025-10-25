@@ -1,0 +1,431 @@
+{% extends "main/base_site.html" %}
+{% load static humanize %}
+
+{% block title %}Player HQ{% endblock %}
+
+{% block content %}
+  <div class="landing-wrapper" id="top">
+    <header class="hero" data-animate="fade-up">
+      <div class="hero-copy">
+        <span class="eyebrow">PitchPilot™ Player Hub</span>
+        <h1>
+          Reserve elite football courts in seconds
+          <span class="hero-gradient">and orchestrate unforgettable matches.</span>
+        </h1>
+        <p>
+          Manage squads, automate recurring bookings, and tap into predictive turf analytics.
+          Our AI concierge secures the perfect pitch, syncs payments, and fills open slots with
+          verified teams before you even lace up.
+        </p>
+        <div class="hero-actions">
+          <a class="cta primary" href="#top-venues">Browse flagship venues</a>
+          <a class="cta secondary" href="#momentum">See how PitchPilot grows your game</a>
+        </div>
+        <dl class="hero-metrics" aria-label="Live product impact">
+          <div>
+            <dt>Total venues onboarded</dt>
+            <dd data-counter="{{ metrics.total_venues|default:0 }}">
+              {{ metrics.total_venues|default:0 }}
+            </dd>
+          </div>
+          <div>
+            <dt>Automated check-ins this month</dt>
+            <dd data-counter="{{ metrics.paid_bookings|default:0 }}">
+              {{ metrics.paid_bookings|default:0 }}
+            </dd>
+          </div>
+          <div>
+            <dt>Returning squads</dt>
+            <dd data-counter="{{ metrics.unique_players|default:0 }}">
+              {{ metrics.unique_players|default:0 }}
+            </dd>
+          </div>
+        </dl>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="orb orb-main" data-parallax="18"></div>
+        <div class="orb orb-side" data-parallax="12"></div>
+        <div class="dashboard-preview" data-animate="fade-in">
+          <div class="preview-header">
+            <span class="badge">MatchFlow AI</span>
+            <span class="pill">92% slot fill rate</span>
+          </div>
+          <div class="preview-body">
+            <div class="sparkline" role="presentation"></div>
+            <ul class="preview-list" role="presentation">
+              <li>
+                <span>Squad autopilot invites</span>
+                <strong>+38%</strong>
+              </li>
+              <li>
+                <span>Dynamic pricing uplift</span>
+                <strong>+17%</strong>
+              </li>
+              <li>
+                <span>Maintenance downtime saved</span>
+                <strong>12 hrs</strong>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="section metrics" id="momentum" data-animate="fade-up">
+      <header class="section-heading">
+        <h2>Momentum your rivals can feel</h2>
+        <p>
+          PitchPilot orchestrates bookings, payments, and performance data so clubs can focus on
+          winning. Smart orchestration eliminates no-shows, balances pitch wear, and unlocks new
+          sponsorship lanes.
+        </p>
+      </header>
+      <div class="metric-grid">
+        <article class="metric-card">
+          <h3>AI demand forecasting</h3>
+          <p>
+            Predict weekend spikes, micro-manage turf rotations, and pre-sell premium match windows
+            with confidence.
+          </p>
+          <div class="metric-value">
+            <span>{{ metrics.total_bookings|default:0 }}</span>
+            <small>bookings orchestrated</small>
+          </div>
+        </article>
+        <article class="metric-card">
+          <h3>Instant payout vault</h3>
+          <p>
+            Funds land in your wallet within 45 seconds of kickoff confirmation thanks to our
+            escrow-backed payout rails.
+          </p>
+          <div class="metric-value">
+            <span>{{ metrics.paid_bookings|default:0 }}</span>
+            <small>live payouts cleared</small>
+          </div>
+        </article>
+        <article class="metric-card">
+          <h3>Squad loyalty engine</h3>
+          <p>
+            Reward consistent teams with dynamic perks and automated rematch scheduling that keeps
+            your calendar packed.
+          </p>
+          <div class="metric-value">
+            <span>{{ metrics.unique_players|default:0 }}</span>
+            <small>active squads tracked</small>
+          </div>
+        </article>
+        <article class="metric-card">
+          <h3>Turf wellness index</h3>
+          <p>
+            IoT-fed turf diagnostics calibrate lighting, hydration, and rest days to preserve elite
+            playing conditions.
+          </p>
+          <div class="metric-value">
+            <span>{{ metrics.overall_rating|default:0|floatformat:1 }}</span>
+            <small>fan-rated experience</small>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section feature-showcase" data-animate="fade-up">
+      <header class="section-heading">
+        <h2>Everything venue managers need, plus the showmanship players love</h2>
+        <p>
+          From frictionless booking flows to immersive matchday storytelling, PitchPilot stacks
+          innovation into every touchpoint.
+        </p>
+      </header>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">⚡</div>
+          <h3>Reactive booking funnels</h3>
+          <p>
+            Autocomplete rosters, sync availability from WhatsApp groups, and auto-confirm payments
+            with 3D Secure handshakes.
+          </p>
+          <ul>
+            <li>Live risk scoring against double-bookings</li>
+            <li>Smart deposit escalation for peak hours</li>
+            <li>Drop-in cancellation marketplace</li>
+          </ul>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">🛰️</div>
+          <h3>Satellite-assisted turf insights</h3>
+          <p>
+            We blend hyperlocal weather feeds with soil telemetry to blueprint micro-rest cycles for
+            your pitches.
+          </p>
+          <ul>
+            <li>Predictive turf fatigue modeling</li>
+            <li>Auto-triggered maintenance work orders</li>
+            <li>Fan-facing condition transparency</li>
+          </ul>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon" aria-hidden="true">🎥</div>
+          <h3>Story-driven match capsules</h3>
+          <p>
+            Deliver highlight reels, player spotlights, and sponsor overlays minutes after the final
+            whistle.
+          </p>
+          <ul>
+            <li>Dynamic lower-third sponsor tags</li>
+            <li>Instant social-ready recaps</li>
+            <li>Auto-scouting reports for academy teams</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section journey" data-animate="fade-up">
+      <header class="section-heading">
+        <h2>How PitchPilot powers a perfect matchday</h2>
+        <p>
+          Automation choreographs every stakeholder from the moment a team dreams up a scrimmage to
+          the after-match debrief.
+        </p>
+      </header>
+      <ol class="journey-steps">
+        <li>
+          <span class="step-number">01</span>
+          <div class="step-card">
+            <h3>Discovery</h3>
+            <p>
+              Fans uncover curated venues via hyper-personalized landing pages, updated in real-time
+              as availability shifts.
+            </p>
+          </div>
+        </li>
+        <li>
+          <span class="step-number">02</span>
+          <div class="step-card">
+            <h3>Activation</h3>
+            <p>
+              Our AI concierge builds rosters, confirms officials, and sends smart pay links that
+              split fees across squads.
+            </p>
+          </div>
+        </li>
+        <li>
+          <span class="step-number">03</span>
+          <div class="step-card">
+            <h3>Matchday</h3>
+            <p>
+              Dynamic signage, live commentary overlays, and sponsor activations make every booking
+              feel televised.
+            </p>
+          </div>
+        </li>
+        <li>
+          <span class="step-number">04</span>
+          <div class="step-card">
+            <h3>Legacy</h3>
+            <p>
+              Auto-generated insights recap hero plays, measure fan sentiment, and suggest repeat
+              bookings to keep momentum alive.
+            </p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="section top-venues" id="top-venues" data-animate="fade-up">
+      <header class="section-heading">
+        <h2>Top booked venues this week</h2>
+        <p>
+          The community is flocking to these arenas for their all-weather surfaces, hospitality, and
+          magnetic atmospheres.
+        </p>
+      </header>
+      <div class="venue-grid">
+        {% for venue in top_venues %}
+          <article class="venue-card">
+            <div
+              class="venue-visual"
+              style="{% if venue.image %}background-image: url('{{ venue.image.url }}');{% endif %}"
+              data-parallax="8"
+            >
+              <div class="venue-glow"></div>
+            </div>
+            <div class="venue-body">
+              <div class="venue-header">
+                <h3>{{ venue.title }}</h3>
+                <span class="venue-location">{{ venue.location }}</span>
+              </div>
+              <dl class="venue-meta">
+                <div>
+                  <dt>Bookings</dt>
+                  <dd>{{ venue.total_bookings|default:0 }}</dd>
+                </div>
+                <div>
+                  <dt>Match rating</dt>
+                  <dd>
+                    {% if venue.average_rating %}
+                      {{ venue.average_rating|floatformat:1 }} ★
+                    {% else %}
+                      Not yet rated
+                    {% endif %}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Rental</dt>
+                  <dd>Rp {{ venue.price|intcomma }}</dd>
+                </div>
+              </dl>
+              <p class="venue-footnote">
+                Integrated hydration pods, AR sideline replay, and concierge-level locker suites keep
+                squads coming back.
+              </p>
+            </div>
+          </article>
+        {% empty %}
+          <p class="empty-state">Your venues are ready for their first spotlight booking.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="section testimonials" data-animate="fade-up">
+      <header class="section-heading">
+        <h2>Clubs, coaches, and players hype up PitchPilot</h2>
+        <p>Stories from squads who transformed their matchday economies.</p>
+      </header>
+      <div class="testimonial-carousel">
+        <article class="testimonial-card">
+          <blockquote>
+            “We replaced five spreadsheets with PitchPilot. Our futsal league sold out in three
+            weekends, and sponsors doubled their exposure.”
+          </blockquote>
+          <footer>
+            <strong>Alex Rivera</strong>
+            <span>Commissioner · Aurora City Futsal</span>
+          </footer>
+        </article>
+        <article class="testimonial-card">
+          <blockquote>
+            “Dynamic pricing lifted off-peak bookings by 42%. The AI concierge even finds sparring
+            partners when squads are short.”
+          </blockquote>
+          <footer>
+            <strong>Briana Singh</strong>
+            <span>Head Coach · Harborview Badminton Club</span>
+          </footer>
+        </article>
+        <article class="testimonial-card">
+          <blockquote>
+            “We broadcast every match with cinematic overlays. Parents share clips instantly and our
+            academy pipeline has never been stronger.”
+          </blockquote>
+          <footer>
+            <strong>Chloe Mendez</strong>
+            <span>Academy Director · Summit Court United</span>
+          </footer>
+        </article>
+      </div>
+    </section>
+
+    <section class="section profile-suite" id="player-profile" data-animate="fade-up">
+      <header class="section-heading">
+        <h2>Your profile cockpit keeps every stat synchronized</h2>
+        <p>
+          Glide through availability, wallet balances, and squad invites with a personalized hub
+          that adapts to your playstyle.
+        </p>
+      </header>
+      <div class="profile-grid">
+        <article class="profile-card">
+          <h3>Performance timeline</h3>
+          <p>
+            Follow every match highlight with auto-tagged replays, training notes, and wellness
+            prompts tuned to your workload.
+          </p>
+        </article>
+        <article class="profile-card">
+          <h3>Wallet &amp; rewards</h3>
+          <p>
+            Earn loyalty boosts, split payments with teammates, and redeem spotlight boosts to push
+            your squad to the featured carousel.
+          </p>
+        </article>
+        <article class="profile-card">
+          <h3>Squad sync</h3>
+          <p>
+            Coordinate rosters, assign captains, and let MatchFlow AI auto-fill subs when someone is
+            running late to kickoff.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section closing" data-animate="fade-up">
+      <div class="closing-card">
+        <div class="closing-copy">
+          <h2>Ready to choreograph the next sold-out fixture?</h2>
+          <p>
+            Unlock automated booking flows, cinematic match storytelling, and AI-driven turf care.
+            Your venue becomes the stage fans never forget.
+          </p>
+        </div>
+        <div class="closing-actions">
+          <a class="cta primary" href="#top-venues">Plan my next match</a>
+          <a class="cta tertiary" href="{% url 'main:logout' %}">Sign out</a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <a class="footer-logo" href="#top" aria-label="Back to top">
+          <span aria-hidden="true">PitchPilot</span>
+        </a>
+        <p>
+          PitchPilot fuels electrifying fixtures with AI scheduling, cinematic match coverage, and
+          hyper-personalized fan experiences.
+        </p>
+      </div>
+      <div class="footer-columns">
+        <div>
+          <h3>Discover</h3>
+          <ul>
+            <li><a href="#top-venues">Flagship venues</a></li>
+            <li><a href="#momentum">Momentum insights</a></li>
+            <li><a href="#player-profile">Profile suite</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Support</h3>
+          <ul>
+            <li><a href="mailto:support@pitchpilot.gg">Email concierge</a></li>
+            <li><a href="tel:+628001112233">Hotline +62 800-111-2233</a></li>
+            <li><a href="#">Implementation playbook</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Stay in the loop</h3>
+          <form class="footer-form" action="#" method="post">
+            <label class="sr-only" for="footer-email">Email address</label>
+            <input
+              id="footer-email"
+              name="email"
+              type="email"
+              inputmode="email"
+              placeholder="Enter your email"
+              autocomplete="email"
+              required
+            />
+            <button type="submit">Subscribe</button>
+          </form>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; {% now "Y" %} PitchPilot Labs. All rights reserved.</p>
+        <div class="footer-social">
+          <a href="#" aria-label="Follow on Instagram">Instagram</a>
+          <a href="#" aria-label="Follow on TikTok">TikTok</a>
+          <a href="#" aria-label="Join on Discord">Discord</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+{% endblock %}
