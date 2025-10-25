@@ -13,6 +13,7 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
@@ -39,7 +40,46 @@ def register_page(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
-    return redirect("main:admin_panel")
+    if _user_is_staff(request.user):
+        return redirect("main:admin_panel")
+
+    ensure_sample_data()
+
+    today = timezone.localdate()
+    venues_queryset = _base_venue_queryset().annotate(
+        total_bookings=Count("bookings", distinct=True)
+    )
+    top_venues = list(
+        venues_queryset.order_by("-total_bookings", "-average_rating", "title")[:3]
+    )
+
+    total_venues = venues_queryset.count()
+    total_bookings = Booking.objects.count()
+    paid_bookings = Booking.objects.filter(has_been_paid=True).count()
+    upcoming_bookings = (
+        Booking.objects.filter(date__start_date__gte=today).count()
+    )
+    unique_players = (
+        Booking.objects.exclude(user=None).values("user_id").distinct().count()
+    )
+    overall_rating = Venue.objects.aggregate(
+        average=Avg("comments__rating")
+    )["average"]
+
+    metrics = {
+        "total_venues": total_venues,
+        "total_bookings": total_bookings,
+        "paid_bookings": paid_bookings,
+        "upcoming_bookings": upcoming_bookings,
+        "unique_players": unique_players,
+        "overall_rating": overall_rating,
+    }
+
+    context = {
+        "metrics": metrics,
+        "top_venues": top_venues,
+    }
+    return render(request, "main/landing.html", context)
 
 
 def _user_is_staff(user) -> bool:
