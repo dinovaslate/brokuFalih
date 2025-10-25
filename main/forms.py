@@ -95,6 +95,10 @@ class SignupForm(forms.Form):
 
 
 class VenueForm(forms.ModelForm):
+    type = forms.ChoiceField(
+        choices=Venue.VenueType.choices,
+        widget=forms.Select(),
+    )
     facilities = forms.CharField(
         required=False,
         help_text="Separate facilities with commas",
@@ -107,7 +111,15 @@ class VenueForm(forms.ModelForm):
 
     class Meta:
         model = Venue
-        fields = ["title", "description", "facilities", "price", "location", "image"]
+        fields = [
+            "title",
+            "type",
+            "description",
+            "facilities",
+            "price",
+            "location",
+            "image",
+        ]
 
     def clean_facilities(self) -> list[str]:
         return _split_facilities(self.cleaned_data.get("facilities", ""))

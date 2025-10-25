@@ -17,12 +17,28 @@ class BookingDate(models.Model):
 
 
 class Venue(models.Model):
+    class VenueType(models.TextChoices):
+        TENNIS = "Tennis", "Tennis"
+        BADMINTON = "Badminton", "Badminton"
+        BASKET = "Basket", "Basket"
+        SEPAK_BOLA = "Sepak Bola", "Sepak Bola"
+        MINI_SOCCER = "Mini Soccer", "Mini Soccer"
+        FUTSAL = "Futsal", "Futsal"
+        BILLIARD = "Billiard", "Billiard"
+        TENIS_MEJA = "Tenis Meja", "Tenis Meja"
+        VOLLY_BALL = "Volly Ball", "Volly Ball"
+
     title = models.CharField(max_length=255)
     description = models.TextField()
     facilities = models.JSONField(default=list, blank=True)
     price = models.PositiveIntegerField(validators=[MinValueValidator(0)])
     location = models.CharField(max_length=255)
     image = models.ImageField(upload_to="venues/", blank=True)
+    type = models.CharField(
+        max_length=20,
+        choices=VenueType.choices,
+        default=VenueType.TENNIS,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
