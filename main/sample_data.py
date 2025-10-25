@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import date, timedelta
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
-from .models import Booking, BookingDate, Venue
+from .models import Booking, BookingDate, Comment, Venue
 
 UserModel = get_user_model()
 
@@ -77,6 +78,70 @@ SAMPLE_VENUES: list[dict[str, object]] = [
         ],
         "price": 680000,
         "location": "Bandung, Indonesia",
+    },
+]
+
+SAMPLE_COMMENTS: list[dict[str, object]] = [
+    {
+        "username": "demo.alex",
+        "rating": 5,
+        "comment": (
+            "Climate control at Aurora Sports Dome keeps the futsal pitch "
+            "comfortable, and the LED scoreboards make our league nights feel "
+            "professional."
+        ),
+        "venues": ["Aurora Sports Dome"],
+        "date_delta": 5,
+    },
+    {
+        "username": "demo.darius",
+        "rating": 4,
+        "comment": (
+            "The lounge seating at Aurora Sports Dome is perfect for teams "
+            "between matches, and staff keep the locker rooms spotless."
+        ),
+        "venues": ["Aurora Sports Dome"],
+        "date_delta": 8,
+    },
+    {
+        "username": "demo.briana",
+        "rating": 5,
+        "comment": (
+            "Harborview Badminton Center's sprung flooring feels great and the "
+            "stringing service had my rackets tuned before play."
+        ),
+        "venues": ["Harborview Badminton Center"],
+        "date_delta": 10,
+    },
+    {
+        "username": "demo.chloe",
+        "rating": 4,
+        "comment": (
+            "We rented equipment at Harborview Badminton Center and it was in "
+            "excellent shape—private coaching rooms were a bonus."
+        ),
+        "venues": ["Harborview Badminton Center"],
+        "date_delta": 13,
+    },
+    {
+        "username": "demo.briana",
+        "rating": 5,
+        "comment": (
+            "Summit Court Arena has bright sightlines, plenty of seating, and "
+            "the hydration station kept our team fresh."
+        ),
+        "venues": ["Summit Court Arena"],
+        "date_delta": 15,
+    },
+    {
+        "username": "demo.alex",
+        "rating": 4,
+        "comment": (
+            "Loved the strength studio at Summit Court Arena for a warm-up "
+            "session before hitting the court."
+        ),
+        "venues": ["Summit Court Arena"],
+        "date_delta": 18,
     },
 ]
 
@@ -173,6 +238,8 @@ def _get_or_create_venues() -> dict[str, Venue]:
             },
         )
         venues[venue.title] = venue
+    for venue in Venue.objects.all():
+        venues.setdefault(venue.title, venue)
     return venues
 
 
@@ -221,6 +288,85 @@ def _create_bookings(users: dict[str, UserModel], venues: dict[str, Venue], *, b
         booking.save()
 
 
+def _resolve_comment_date(*, base_reference, today, payload) -> date:
+    date_delta = payload.get("date_delta")
+    if date_delta is not None:
+        candidate = base_reference + timedelta(days=int(date_delta))
+        return candidate if candidate <= today else today
+
+    days_ago = payload.get("days_ago")
+    if days_ago is not None:
+        return today - timedelta(days=int(days_ago))
+
+    return today
+
+
+def _create_comments(
+    users: dict[str, UserModel], venues: dict[str, Venue], *, base_date
+) -> None:
+    if not users:
+        return
+
+    today = timezone.localdate()
+    base_reference = base_date or today - timedelta(days=21)
+    default_user = next(iter(users.values()), None)
+
+    for payload in SAMPLE_COMMENTS:
+        username = payload.get("username")
+        user = users.get(username) or default_user
+        if user is None:
+            continue
+
+        comment_text = str(payload.get("comment", "")).strip()
+        if not comment_text:
+            continue
+
+        rating = int(payload.get("rating", 0))
+        if rating < 1 or rating > 5:
+            rating = max(1, min(5, rating))
+
+        comment_date = _resolve_comment_date(
+            base_reference=base_reference, today=today, payload=payload
+        )
+
+        comment, created = Comment.objects.get_or_create(
+            user=user,
+            comment=comment_text,
+            defaults={"rating": rating, "date": comment_date},
+        )
+
+        if not created:
+            updates: list[str] = []
+            if comment.rating != rating:
+                comment.rating = rating
+                updates.append("rating")
+            if comment.date != comment_date:
+                comment.date = comment_date
+                updates.append("date")
+            if updates:
+                comment.save(update_fields=updates)
+
+        for title in payload.get("venues", []):
+            venue = venues.get(title)
+            if venue is not None:
+                comment.venue.add(venue)
+
+    for venue in Venue.objects.all():
+        if venue.comments.exists() or default_user is None:
+            continue
+
+        generic_text = (
+            f"Enjoyed playing at {venue.title}. Facilities were clean and the "
+            "staff were welcoming."
+        )
+        comment, _ = Comment.objects.get_or_create(
+            user=default_user,
+            comment=generic_text,
+            defaults={"rating": 4, "date": today},
+        )
+        comment.venue.add(venue)
+
+
 def ensure_sample_data(*, base_date=None) -> None:
     """Populate the database with demo venues and bookings when empty.
 
@@ -238,6 +384,7 @@ def ensure_sample_data(*, base_date=None) -> None:
         venues = _get_or_create_venues()
         users = _get_or_create_users()
         _create_bookings(users, venues, base_date=base_date)
+        _create_comments(users, venues, base_date=base_date)
 
         # Ensure we still have venues even if bookings were skipped for safety.
         if not Venue.objects.exists():
