@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.core.paginator import Paginator
+from django.db.models import Case, Q, Value, When, CharField
+from django.db.models.functions import Cast, Coalesce, Concat
 from django.http import (
     HttpRequest,
     HttpResponse,
@@ -16,6 +18,10 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .forms import BookingForm, SignupForm, VenueForm
 from .models import Booking, Venue
+
+
+DEFAULT_PAGE_SIZE = 6
+MAX_PAGE_SIZE = 50
 
 
 def login_page(request: HttpRequest) -> HttpResponse:
@@ -98,6 +104,97 @@ def logout_view(request: HttpRequest) -> HttpResponse:
     return redirect("main:login")
 
 
+def _parse_positive_int(value: str | None, default: int, *, max_value: int | None = None) -> int:
+    try:
+        parsed = int(value) if value is not None else default
+    except (TypeError, ValueError):
+        return default
+    if parsed < 1:
+        return default
+    if max_value is not None and parsed > max_value:
+        return max_value
+    return parsed
+
+
+def _apply_venue_search(queryset, query: str):
+    if not query:
+        return queryset
+    trimmed = query.strip()
+    if not trimmed:
+        return queryset
+    queryset = queryset.annotate(price_text=Cast("price", output_field=CharField()))
+    filters = (
+        Q(title__icontains=trimmed)
+        | Q(type__icontains=trimmed)
+        | Q(location__icontains=trimmed)
+        | Q(description__icontains=trimmed)
+        | Q(facilities__icontains=trimmed)
+        | Q(price_text__icontains=trimmed)
+    )
+    return queryset.filter(filters)
+
+
+def _apply_booking_search(queryset, query: str):
+    if not query:
+        return queryset
+    trimmed = query.strip()
+    if not trimmed:
+        return queryset
+
+    queryset = queryset.annotate(
+        start_date_text=Cast("date__start_date", output_field=CharField()),
+        end_date_text=Cast("date__end_date", output_field=CharField()),
+        user_full_name=Concat(
+            Coalesce("user__first_name", Value("")),
+            Value(" "),
+            Coalesce("user__last_name", Value("")),
+        ),
+        paid_text=Case(
+            When(has_been_paid=True, then=Value("paid")),
+            default=Value("pending"),
+            output_field=CharField(),
+        ),
+    )
+
+    filters = (
+        Q(user__username__icontains=trimmed)
+        | Q(user_full_name__icontains=trimmed)
+        | Q(venue__title__icontains=trimmed)
+        | Q(notes__icontains=trimmed)
+        | Q(start_date_text__icontains=trimmed)
+        | Q(end_date_text__icontains=trimmed)
+        | Q(paid_text__icontains=trimmed)
+    )
+    return queryset.filter(filters)
+
+
+def _build_paginated_payload(
+    queryset,
+    *,
+    page: int,
+    page_size: int,
+    serializer,
+    query: str,
+    extra_meta: dict[str, object] | None = None,
+):
+    paginator = Paginator(queryset, page_size)
+    page_obj = paginator.get_page(page)
+
+    data = [serializer(item) for item in page_obj.object_list]
+    meta: dict[str, object] = {
+        "page": page_obj.number,
+        "page_size": page_obj.paginator.per_page,
+        "total_pages": page_obj.paginator.num_pages,
+        "total_items": page_obj.paginator.count,
+        "has_next": page_obj.has_next(),
+        "has_previous": page_obj.has_previous(),
+        "query": query.strip(),
+    }
+    if extra_meta:
+        meta.update(extra_meta)
+    return data, meta
+
+
 @require_POST
 def login_api(request: HttpRequest) -> JsonResponse:
     identifier = request.POST.get("email", "").strip()
@@ -150,15 +247,31 @@ def admin_panel(request: HttpRequest) -> HttpResponse:
         return forbidden
 
     User = get_user_model()
-    venues = [_serialize_venue(venue) for venue in Venue.objects.all()]
-    bookings = [
-        _serialize_booking(booking)
-        for booking in Booking.objects.select_related("venue", "date", "user")
-    ]
+    page_size = DEFAULT_PAGE_SIZE
+    venues_queryset = Venue.objects.all()
+    venues_total = venues_queryset.count()
+    bookings_queryset = Booking.objects.select_related("venue", "date", "user")
+
+    venues_data, venues_meta = _build_paginated_payload(
+        venues_queryset,
+        page=1,
+        page_size=page_size,
+        serializer=_serialize_venue,
+        query="",
+        extra_meta={"total_available": venues_total},
+    )
+    bookings_data, bookings_meta = _build_paginated_payload(
+        bookings_queryset,
+        page=1,
+        page_size=page_size,
+        serializer=_serialize_booking,
+        query="",
+        extra_meta={"has_users": User.objects.exists()},
+    )
     context = {
-        "venues": venues,
-        "bookings": bookings,
-        "has_users": User.objects.exists(),
+        "venues": {"data": venues_data, "meta": venues_meta},
+        "bookings": {"data": bookings_data, "meta": bookings_meta},
+        "has_users": bookings_meta["has_users"],
     }
     return render(request, "main/admin_panel.html", context)
 
@@ -174,8 +287,26 @@ def venues_list_api(request: HttpRequest) -> JsonResponse:
     if forbidden:
         return forbidden
 
-    venues = [_serialize_venue(venue) for venue in Venue.objects.all()]
-    return JsonResponse({"success": True, "data": venues})
+    query = request.GET.get("q", "")
+    page = _parse_positive_int(request.GET.get("page"), 1)
+    page_size = _parse_positive_int(
+        request.GET.get("page_size"),
+        DEFAULT_PAGE_SIZE,
+        max_value=MAX_PAGE_SIZE,
+    )
+
+    total_available = Venue.objects.count()
+    venues_queryset = Venue.objects.all()
+    venues_queryset = _apply_venue_search(venues_queryset, query)
+    data, meta = _build_paginated_payload(
+        venues_queryset,
+        page=page,
+        page_size=page_size,
+        serializer=_serialize_venue,
+        query=query,
+        extra_meta={"total_available": total_available},
+    )
+    return JsonResponse({"success": True, "data": data, "meta": meta})
 
 
 @login_required
@@ -228,18 +359,26 @@ def bookings_list_api(request: HttpRequest) -> JsonResponse:
     if forbidden:
         return forbidden
 
-    bookings = [
-        _serialize_booking(booking)
-        for booking in Booking.objects.select_related("venue", "date", "user")
-    ]
-    User = get_user_model()
-    return JsonResponse(
-        {
-            "success": True,
-            "data": bookings,
-            "meta": {"has_users": User.objects.exists()},
-        }
+    query = request.GET.get("q", "")
+    page = _parse_positive_int(request.GET.get("page"), 1)
+    page_size = _parse_positive_int(
+        request.GET.get("page_size"),
+        DEFAULT_PAGE_SIZE,
+        max_value=MAX_PAGE_SIZE,
     )
+
+    bookings_queryset = Booking.objects.select_related("venue", "date", "user")
+    bookings_queryset = _apply_booking_search(bookings_queryset, query)
+    User = get_user_model()
+    data, meta = _build_paginated_payload(
+        bookings_queryset,
+        page=page,
+        page_size=page_size,
+        serializer=_serialize_booking,
+        query=query,
+        extra_meta={"has_users": User.objects.exists()},
+    )
+    return JsonResponse({"success": True, "data": data, "meta": meta})
 
 
 @login_required

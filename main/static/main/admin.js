@@ -22,6 +22,8 @@
     },
   };
 
+  const DEFAULT_PAGE_SIZE = 6;
+
   const sectionConfig = {
     venues: {
       title: 'Venues',
@@ -44,23 +46,77 @@
     modalMode: 'create',
     editingId: null,
     hasUsers: app.dataset.hasUsers === 'true',
+    pagination: {
+      venues: {
+        page: 1,
+        pageSize: DEFAULT_PAGE_SIZE,
+        totalPages: 1,
+        totalItems: 0,
+        hasPrevious: false,
+        hasNext: false,
+        query: '',
+      },
+      bookings: {
+        page: 1,
+        pageSize: DEFAULT_PAGE_SIZE,
+        totalPages: 1,
+        totalItems: 0,
+        hasPrevious: false,
+        hasNext: false,
+        query: '',
+      },
+    },
+    search: {
+      venues: '',
+      bookings: '',
+    },
   };
 
   function parseInitialData(id) {
     const script = document.getElementById(id);
     if (!script) {
-      return [];
+      return null;
     }
     try {
       return JSON.parse(script.textContent);
     } catch (error) {
       console.error(`Failed to parse initial data for ${id}`, error);
-      return [];
+      return null;
     }
   }
 
-  state.venues = parseInitialData('initial-venues');
-  state.bookings = parseInitialData('initial-bookings');
+  function parseInitialPayload(id) {
+    const raw = parseInitialData(id);
+    if (Array.isArray(raw)) {
+      return { data: raw, meta: {} };
+    }
+    if (raw && typeof raw === 'object') {
+      const data = Array.isArray(raw.data) ? raw.data : [];
+      const meta = raw.meta && typeof raw.meta === 'object' ? raw.meta : {};
+      return { data, meta };
+    }
+    return { data: [], meta: {} };
+  }
+
+  const initialVenues = parseInitialPayload('initial-venues');
+  const initialBookings = parseInitialPayload('initial-bookings');
+
+  state.venues = initialVenues.data;
+  state.bookings = initialBookings.data;
+  state.pagination.venues = normalizePaginationMeta(
+    initialVenues.meta,
+    state.pagination.venues,
+  );
+  state.pagination.bookings = normalizePaginationMeta(
+    initialBookings.meta,
+    state.pagination.bookings,
+  );
+  state.search.venues = state.pagination.venues.query;
+  state.search.bookings = state.pagination.bookings.query;
+
+  if (initialBookings.meta && typeof initialBookings.meta.has_users === 'boolean') {
+    state.hasUsers = initialBookings.meta.has_users;
+  }
 
   const navButtons = app.querySelectorAll('.nav-link');
   const contentSections = app.querySelectorAll('.data-section');
@@ -72,6 +128,26 @@
   const emptyStates = {
     venues: document.querySelector('[data-empty="venues"]'),
     bookings: document.querySelector('[data-empty="bookings"]'),
+  };
+  const tableWrappers = {
+    venues: document.querySelector('[data-table-wrapper="venues"]'),
+    bookings: document.querySelector('[data-table-wrapper="bookings"]'),
+  };
+  const searchInputs = {
+    venues: document.querySelector('[data-search-input="venues"]'),
+    bookings: document.querySelector('[data-search-input="bookings"]'),
+  };
+  const paginationContainers = {
+    venues: document.querySelector('[data-pagination="venues"]'),
+    bookings: document.querySelector('[data-pagination="bookings"]'),
+  };
+  const tableSummaries = {
+    venues: document.querySelector('[data-summary="venues"]'),
+    bookings: document.querySelector('[data-summary="bookings"]'),
+  };
+  const tableFooters = {
+    venues: document.querySelector('[data-table-footer="venues"]'),
+    bookings: document.querySelector('[data-table-footer="bookings"]'),
   };
   const modalBackdrop = document.querySelector('[data-modal]');
   const modalTitle = document.getElementById('modal-title');
@@ -85,6 +161,14 @@
   };
   const autocompleteControllers = {};
   let userSearchController = null;
+  const fetchControllers = {
+    venues: null,
+    bookings: null,
+  };
+  const searchTimeouts = {
+    venues: null,
+    bookings: null,
+  };
 
   function toggleFormSection(section, isActive) {
     if (!section) {
@@ -107,6 +191,97 @@
   }
 
   setActiveFormSection('venues');
+
+  function normalizePaginationMeta(meta = {}, fallback = {}) {
+    const resolved = meta && typeof meta === 'object' ? meta : {};
+    const fallbackMeta = fallback && typeof fallback === 'object' ? fallback : {};
+    const parseNumber = (value, defaultValue) => {
+      const parsed = Number.parseInt(value, 10);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        return defaultValue;
+      }
+      return parsed;
+    };
+
+    let page = parseNumber(resolved.page ?? fallbackMeta.page, fallbackMeta.page ?? 1);
+    let pageSize = parseNumber(
+      resolved.page_size ?? resolved.pageSize ?? fallbackMeta.pageSize,
+      fallbackMeta.pageSize ?? DEFAULT_PAGE_SIZE,
+    );
+    let totalPages = parseNumber(
+      resolved.total_pages ?? resolved.totalPages ?? fallbackMeta.totalPages,
+      fallbackMeta.totalPages ?? 1,
+    );
+    let totalItems = parseNumber(
+      resolved.total_items ?? resolved.totalItems ?? fallbackMeta.totalItems,
+      fallbackMeta.totalItems ?? 0,
+    );
+
+    if (!Number.isFinite(page) || page < 1) {
+      page = 1;
+    }
+    if (!Number.isFinite(pageSize) || pageSize < 1) {
+      pageSize = DEFAULT_PAGE_SIZE;
+    }
+    if (!Number.isFinite(totalPages) || totalPages < 1) {
+      totalPages = 1;
+    }
+    if (!Number.isFinite(totalItems) || totalItems < 0) {
+      totalItems = 0;
+    }
+    if (page > totalPages) {
+      page = totalPages;
+    }
+
+    const rawHasPrevious =
+      resolved.has_previous ?? resolved.hasPrevious ?? fallbackMeta.hasPrevious ?? fallbackMeta.has_previous;
+    const rawHasNext =
+      resolved.has_next ?? resolved.hasNext ?? fallbackMeta.hasNext ?? fallbackMeta.has_next;
+
+    const normalized = {
+      page,
+      pageSize,
+      totalPages,
+      totalItems,
+      hasPrevious:
+        typeof rawHasPrevious === 'boolean' ? rawHasPrevious : page > 1 && totalPages > 1,
+      hasNext: typeof rawHasNext === 'boolean' ? rawHasNext : page < totalPages,
+      query:
+        typeof resolved.query === 'string'
+          ? resolved.query.trim()
+          : typeof fallbackMeta.query === 'string'
+            ? fallbackMeta.query.trim()
+            : '',
+    };
+
+    const ignoredKeys = new Set([
+      'page',
+      'page_size',
+      'pageSize',
+      'total_pages',
+      'totalPages',
+      'total_items',
+      'totalItems',
+      'has_previous',
+      'hasPrevious',
+      'has_next',
+      'hasNext',
+      'query',
+    ]);
+
+    [fallbackMeta, resolved].forEach((source) => {
+      if (!source || typeof source !== 'object') {
+        return;
+      }
+      Object.entries(source).forEach(([key, value]) => {
+        if (!ignoredKeys.has(key) && !(key in normalized)) {
+          normalized[key] = value;
+        }
+      });
+    });
+
+    return normalized;
+  }
 
   function getCsrfToken() {
     const cookie = document.cookie
@@ -149,12 +324,151 @@
   }
 
   function toggleEmptyState(section) {
-    const hasItems = state[section] && state[section].length;
     const emptyState = emptyStates[section];
     if (!emptyState) {
       return;
     }
+    const items = state[section] || [];
+    const meta = state.pagination[section] || {};
+    const hasItems = Array.isArray(items) && items.length > 0;
+    const query = (typeof meta.query === 'string' ? meta.query : state.search[section]) || '';
+    const defaultMessage = emptyState.dataset.emptyDefault || emptyState.textContent;
+    const filteredMessage = emptyState.dataset.emptyFiltered || defaultMessage;
+    emptyState.textContent = query ? filteredMessage : defaultMessage;
     emptyState.classList.toggle('is-visible', !hasItems);
+  }
+
+  function setLoading(section, isLoading) {
+    const wrapper = tableWrappers[section];
+    if (!wrapper) {
+      return;
+    }
+    const active = Boolean(isLoading);
+    wrapper.classList.toggle('is-loading', active);
+    wrapper.setAttribute('aria-busy', active ? 'true' : 'false');
+  }
+
+  function computePageList(current, total, maxLength = 5) {
+    const safeTotal = Math.max(1, total || 1);
+    const safeCurrent = Math.min(Math.max(1, current || 1), safeTotal);
+    const visible = Math.max(1, maxLength || 1);
+    let start = Math.max(1, safeCurrent - Math.floor(visible / 2));
+    let end = start + visible - 1;
+    if (end > safeTotal) {
+      end = safeTotal;
+      start = Math.max(1, end - visible + 1);
+    }
+    const pages = [];
+    for (let page = start; page <= end; page += 1) {
+      pages.push(page);
+    }
+    return pages;
+  }
+
+  function handlePageChange(section, page) {
+    const meta = state.pagination[section] || {};
+    const parsed = Number(page);
+    const pageNumber = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+    const pageSize = meta.pageSize || DEFAULT_PAGE_SIZE;
+    const query = state.search[section] || '';
+    loadSection(section, { page: pageNumber, pageSize, query });
+  }
+
+  function createPaginationButton(label, pageNumber, section, options = {}) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    if (options.ariaLabel) {
+      button.setAttribute('aria-label', options.ariaLabel);
+    }
+    if (options.disabled) {
+      button.disabled = true;
+      return button;
+    }
+    button.dataset.page = String(pageNumber);
+    button.addEventListener('click', () => {
+      handlePageChange(section, pageNumber);
+    });
+    return button;
+  }
+
+  function renderPagination(section) {
+    const container = paginationContainers[section];
+    if (!container) {
+      return;
+    }
+    const meta = state.pagination[section];
+    container.innerHTML = '';
+    if (!meta || meta.totalPages <= 1) {
+      container.classList.add('is-hidden');
+      return;
+    }
+    container.classList.remove('is-hidden');
+    const fragment = document.createDocumentFragment();
+    fragment.appendChild(
+      createPaginationButton('Prev', meta.page - 1, section, {
+        disabled: !meta.hasPrevious,
+        ariaLabel: 'Previous page',
+      }),
+    );
+    const pages = computePageList(meta.page, meta.totalPages);
+    pages.forEach((pageNumber) => {
+      const button = createPaginationButton(String(pageNumber), pageNumber, section);
+      if (pageNumber === meta.page) {
+        button.classList.add('is-active');
+        button.disabled = true;
+        button.setAttribute('aria-current', 'page');
+      }
+      fragment.appendChild(button);
+    });
+    fragment.appendChild(
+      createPaginationButton('Next', meta.page + 1, section, {
+        disabled: !meta.hasNext,
+        ariaLabel: 'Next page',
+      }),
+    );
+    container.appendChild(fragment);
+  }
+
+  function updateSummary(section) {
+    const summary = tableSummaries[section];
+    if (!summary) {
+      return;
+    }
+    const meta = state.pagination[section];
+    const items = state[section];
+    if (!meta || !items || !items.length || !meta.totalItems) {
+      summary.textContent = '';
+      return;
+    }
+    const startIndex = (meta.page - 1) * meta.pageSize + 1;
+    const endIndex = Math.min(meta.totalItems, startIndex + items.length - 1);
+    const queryText = meta.query ? ` matching “${meta.query}”` : '';
+    summary.textContent = `Showing ${startIndex}–${endIndex} of ${meta.totalItems}${queryText} results.`;
+  }
+
+  function updateTableFooter(section) {
+    const footer = tableFooters[section];
+    if (!footer) {
+      return;
+    }
+    const meta = state.pagination[section];
+    const hasItems = meta && meta.totalItems > 0;
+    footer.classList.toggle('is-hidden', !hasItems);
+  }
+
+  function handleSearchChange(section, rawValue) {
+    if (!(section in searchTimeouts)) {
+      return;
+    }
+    const query = typeof rawValue === 'string' ? rawValue.trim() : '';
+    state.search[section] = query;
+    const meta = state.pagination[section] || {};
+    const pageSize = meta.pageSize || DEFAULT_PAGE_SIZE;
+    window.clearTimeout(searchTimeouts[section]);
+    searchTimeouts[section] = window.setTimeout(() => {
+      loadSection(section, { page: 1, pageSize, query });
+    }, 220);
   }
 
   function createAutocompleteController(fieldElement, options = {}) {
@@ -392,7 +706,16 @@
     const matchingVenue = state.venues.find((venue) => Number(venue.id) === Number(currentValue));
     if (matchingVenue) {
       venueController.setSelection(matchingVenue.title || '', matchingVenue.id);
-    } else {
+      return;
+    }
+    const venuesMeta = state.pagination.venues || {};
+    const totalVenues =
+      typeof venuesMeta.total_available === 'number'
+        ? venuesMeta.total_available
+        : typeof venuesMeta.totalItems === 'number'
+          ? venuesMeta.totalItems
+          : state.venues.length;
+    if (totalVenues === 0) {
       venueController.setSelection('', '');
     }
   }
@@ -550,6 +873,9 @@
 
     venuesTableBody.appendChild(fragment);
     toggleEmptyState('venues');
+    updateSummary('venues');
+    renderPagination('venues');
+    updateTableFooter('venues');
   }
 
   function renderBookings() {
@@ -610,6 +936,9 @@
 
     bookingsTableBody.appendChild(fragment);
     toggleEmptyState('bookings');
+    updateSummary('bookings');
+    renderPagination('bookings');
+    updateTableFooter('bookings');
   }
 
   function updateHeader(section) {
@@ -624,7 +953,14 @@
 
   function updateActionButton() {
     if (state.currentSection === 'bookings') {
-      const hasVenues = state.venues.length > 0;
+      const venuesMeta = state.pagination.venues || {};
+      const totalVenues =
+        typeof venuesMeta.total_available === 'number'
+          ? venuesMeta.total_available
+          : typeof venuesMeta.totalItems === 'number'
+            ? venuesMeta.totalItems
+            : state.venues.length;
+      const hasVenues = totalVenues > 0;
       const hasUsers = state.hasUsers;
       const canCreate = hasVenues && hasUsers;
       actionButton.disabled = !canCreate;
@@ -660,6 +996,10 @@
       const isActive = contentSection.dataset.section === section;
       contentSection.classList.toggle('is-hidden', !isActive);
     });
+
+    if (searchInputs[section]) {
+      searchInputs[section].value = state.search[section] || '';
+    }
 
     updateHeader(section);
     updateActionButton();
@@ -785,52 +1125,109 @@
     closeAllAutocompletes();
   }
 
-  async function refreshFromServer(section) {
+  async function loadSection(section, options = {}) {
     const endpoint = endpoints[section];
-    if (!endpoint) {
-      return;
+    if (!endpoint || !endpoint.list) {
+      return null;
     }
+
+    const currentMeta = state.pagination[section] || {};
+    const query =
+      options.query !== undefined ? options.query : state.search[section] || '';
+    const requestedPageSize =
+      options.pageSize !== undefined ? Number(options.pageSize) : currentMeta.pageSize;
+    const pageSize = Number.isFinite(requestedPageSize) && requestedPageSize > 0
+      ? requestedPageSize
+      : DEFAULT_PAGE_SIZE;
+    const requestedPage =
+      options.page !== undefined ? Number(options.page) : currentMeta.page;
+    const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('page_size', String(pageSize));
+    if (query) {
+      params.set('q', query);
+    }
+
+    if (fetchControllers[section]) {
+      fetchControllers[section].abort();
+    }
+    const controller = new AbortController();
+    fetchControllers[section] = controller;
+
     try {
-      const response = await fetch(endpoint.list, {
+      setLoading(section, true);
+      const response = await fetch(`${endpoint.list}?${params.toString()}`, {
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        signal: controller.signal,
       });
       if (!response.ok) {
-        throw new Error('Failed to refresh');
+        throw new Error('Failed to load data');
       }
       const payload = await response.json();
       if (!payload.success) {
-        return;
+        return null;
       }
-      state[section] = payload.data;
-      if (
-        section === 'bookings'
-        && payload.meta
-        && typeof payload.meta.has_users === 'boolean'
-      ) {
-        state.hasUsers = payload.meta.has_users;
+      const data = Array.isArray(payload.data) ? payload.data : [];
+      const meta = normalizePaginationMeta(payload.meta, {
+        page,
+        pageSize,
+        query,
+        totalItems: currentMeta.totalItems,
+        totalPages: currentMeta.totalPages,
+        hasPrevious: currentMeta.hasPrevious,
+        hasNext: currentMeta.hasNext,
+      });
+
+      state[section] = data;
+      state.pagination[section] = meta;
+      state.search[section] = meta.query || '';
+
+      if (searchInputs[section] && searchInputs[section].value !== state.search[section]) {
+        searchInputs[section].value = state.search[section];
       }
+
+      if (section === 'bookings' && typeof meta.has_users === 'boolean') {
+        state.hasUsers = meta.has_users;
+      }
+
       if (section === 'venues') {
         renderVenues();
         syncVenueAutocompleteSelection();
         if (autocompleteControllers.venue) {
-          if (!state.venues.length) {
+          if (!state.venues.length && !meta.totalItems) {
             autocompleteControllers.venue.clear();
           } else {
             autocompleteControllers.venue.refresh();
           }
         }
         if (state.currentSection === 'bookings') {
-          // bookings might depend on venues for their display
           renderBookings();
         }
       } else if (section === 'bookings') {
         renderBookings();
       }
+
       updateActionButton();
+      return payload;
     } catch (error) {
+      if (error.name === 'AbortError') {
+        return null;
+      }
       console.error(error);
-      showToast('Unable to refresh data right now.');
+      showToast('Unable to load data right now.');
+      return null;
+    } finally {
+      setLoading(section, false);
+      if (fetchControllers[section] === controller) {
+        fetchControllers[section] = null;
+      }
     }
+  }
+
+  async function refreshFromServer(section, options = {}) {
+    return loadSection(section, options);
   }
 
   async function handleFormSubmit(event) {
@@ -893,38 +1290,39 @@
       }
 
       if (section === 'venues') {
-        if (mode === 'edit') {
-          state.venues = state.venues.map((item) => (Number(item.id) === Number(payload.data.id) ? payload.data : item));
-        } else {
-          state.venues.unshift(payload.data);
+        if (
+          mode === 'edit'
+          && autocompleteControllers.venue
+          && autocompleteControllers.venue.hiddenInput
+          && Number(autocompleteControllers.venue.hiddenInput.value)
+            === Number(payload.data.id)
+        ) {
+          autocompleteControllers.venue.setSelection(payload.data.title || '', payload.data.id);
         }
-        renderVenues();
-        syncVenueAutocompleteSelection();
-        if (autocompleteControllers.venue) {
-          autocompleteControllers.venue.refresh();
-        }
-        updateActionButton();
-        state.bookings = state.bookings.map((booking) => {
-          if (booking.venue && Number(booking.venue.id) === Number(payload.data.id)) {
-            return {
-              ...booking,
-              venue: {
-                ...booking.venue,
-                title: payload.data.title,
-              },
-            };
-          }
-          return booking;
+
+        const targetPage = mode === 'edit'
+          ? state.pagination.venues.page || 1
+          : 1;
+        await refreshFromServer('venues', {
+          page: targetPage,
+          query: state.search.venues || '',
         });
-        renderBookings();
+
+        if (mode === 'edit') {
+          await refreshFromServer('bookings', {
+            page: state.pagination.bookings.page || 1,
+            query: state.search.bookings || '',
+          });
+        }
       } else if (section === 'bookings') {
         state.hasUsers = true;
-        if (mode === 'edit') {
-          state.bookings = state.bookings.map((item) => (Number(item.id) === Number(payload.data.id) ? payload.data : item));
-        } else {
-          state.bookings.unshift(payload.data);
-        }
-        renderBookings();
+        const targetPage = mode === 'edit'
+          ? state.pagination.bookings.page || 1
+          : 1;
+        await refreshFromServer('bookings', {
+          page: targetPage,
+          query: state.search.bookings || '',
+        });
       }
 
       closeModal();
@@ -960,24 +1358,27 @@
         throw new Error('Delete failed');
       }
       if (section === 'venues') {
-        state.venues = state.venues.filter((item) => Number(item.id) !== Number(recordId));
-        state.bookings = state.bookings.filter((item) => item.venue && Number(item.venue.id) !== Number(recordId));
-        renderVenues();
-        renderBookings();
-        syncVenueAutocompleteSelection();
-        if (autocompleteControllers.venue) {
-          if (!state.venues.length) {
-            autocompleteControllers.venue.clear();
-          } else {
-            autocompleteControllers.venue.refresh();
-          }
+        if (
+          autocompleteControllers.venue
+          && autocompleteControllers.venue.hiddenInput
+          && Number(autocompleteControllers.venue.hiddenInput.value) === Number(recordId)
+        ) {
+          autocompleteControllers.venue.clear();
         }
+        await refreshFromServer('venues', {
+          page: state.pagination.venues.page || 1,
+          query: state.search.venues || '',
+        });
+        await refreshFromServer('bookings', {
+          page: state.pagination.bookings.page || 1,
+          query: state.search.bookings || '',
+        });
       } else if (section === 'bookings') {
-        state.bookings = state.bookings.filter((item) => Number(item.id) !== Number(recordId));
-        renderBookings();
+        await refreshFromServer('bookings', {
+          page: state.pagination.bookings.page || 1,
+          query: state.search.bookings || '',
+        });
       }
-      toggleEmptyState(section);
-      updateActionButton();
       showToast('Deleted successfully.');
     } catch (error) {
       console.error(error);
@@ -1033,10 +1434,22 @@
     }
   });
 
+  Object.entries(searchInputs).forEach(([section, input]) => {
+    if (!input) {
+      return;
+    }
+    input.value = state.search[section] || '';
+    input.addEventListener('keyup', (event) => {
+      handleSearchChange(section, event.target.value);
+    });
+    input.addEventListener('search', (event) => {
+      handleSearchChange(section, event.target.value);
+    });
+  });
+
   renderVenues();
   renderBookings();
   updateHeader(state.currentSection);
   updateActionButton();
   refreshFromServer('venues');
-  refreshFromServer('bookings');
 })();

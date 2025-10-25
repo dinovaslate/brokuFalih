@@ -184,8 +184,50 @@ body.admin-body {
   box-shadow: var(--shadow-lg);
 }
 
+.table-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.search-field {
+  position: relative;
+  width: min(320px, 100%);
+}
+
+.search-field input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font: inherit;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
 .table-wrapper {
+  position: relative;
   overflow-x: auto;
+}
+
+.table-wrapper.is-loading::after {
+  content: 'Loading…';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.95rem;
+  pointer-events: none;
 }
 
 .data-table {
@@ -257,6 +299,76 @@ body.admin-body {
 
 .table-actions button:hover {
   filter: brightness(0.95);
+}
+
+.table-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.table-footer.is-hidden {
+  display: none;
+}
+
+.table-summary {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.pagination {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pagination.is-hidden {
+  display: none;
+}
+
+.pagination button {
+  font: inherit;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: #fff;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.pagination button:hover:not(:disabled),
+.pagination button:focus-visible:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+
+.pagination button.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  cursor: default;
+}
+
+.pagination button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 
 .empty-state {
