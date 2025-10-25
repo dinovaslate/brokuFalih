@@ -263,6 +263,7 @@
     popularity: null,
   };
   const modalBackdrop = document.querySelector('[data-modal]');
+  const modalElement = modalBackdrop ? modalBackdrop.querySelector('.modal') : null;
   const modalTitle = document.getElementById('modal-title');
   const entityForm = document.getElementById('entity-form');
   const modalErrors = document.querySelector('[data-modal-errors]');
@@ -282,6 +283,14 @@
     venues: null,
     bookings: null,
   };
+
+  const reduceMotionQuery =
+    typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)')
+      : null;
+  const prefersReducedMotion = reduceMotionQuery ? reduceMotionQuery.matches : false;
+  const canAnimate = typeof anime !== 'undefined' && !prefersReducedMotion;
+  let modalAnimation = null;
 
   function toggleFormSection(section, isActive) {
     if (!section) {
@@ -304,6 +313,126 @@
   }
 
   setActiveFormSection('venues');
+
+  function resetModalStyles() {
+    if (modalBackdrop) {
+      modalBackdrop.style.removeProperty('opacity');
+    }
+    if (modalElement) {
+      modalElement.style.removeProperty('opacity');
+      modalElement.style.removeProperty('transform');
+    }
+  }
+
+  function showModalBackdrop() {
+    if (!modalBackdrop) {
+      return;
+    }
+    modalBackdrop.hidden = false;
+    modalBackdrop.setAttribute('aria-hidden', 'false');
+  }
+
+  function hideModalBackdrop() {
+    if (!modalBackdrop) {
+      return;
+    }
+    modalBackdrop.hidden = true;
+    modalBackdrop.setAttribute('aria-hidden', 'true');
+  }
+
+  function animateActiveNavButton(button) {
+    if (!canAnimate || !button) {
+      return;
+    }
+    anime.remove(button);
+    anime.set(button, { scale: 0.94 });
+    anime({
+      targets: button,
+      scale: 1,
+      duration: 220,
+      easing: 'easeOutQuad',
+      complete: () => {
+        button.style.removeProperty('transform');
+      },
+    });
+  }
+
+  function animateSectionEntry(sectionElement) {
+    if (!canAnimate || !sectionElement) {
+      return;
+    }
+    anime.remove(sectionElement);
+    anime.set(sectionElement, { opacity: 0, translateY: 18 });
+    requestAnimationFrame(() => {
+      anime({
+        targets: sectionElement,
+        opacity: 1,
+        translateY: 0,
+        duration: 360,
+        easing: 'easeOutQuad',
+        complete: () => {
+          sectionElement.style.removeProperty('opacity');
+          sectionElement.style.removeProperty('transform');
+        },
+      });
+    });
+  }
+
+  function animateTableRows(container) {
+    if (!canAnimate || !container) {
+      return;
+    }
+    const rows = Array.from(container.querySelectorAll('tr'));
+    if (!rows.length) {
+      return;
+    }
+    anime.remove(rows);
+    anime.set(rows, { opacity: 0, translateY: 12 });
+    requestAnimationFrame(() => {
+      anime({
+        targets: rows,
+        opacity: 1,
+        translateY: 0,
+        duration: 320,
+        easing: 'easeOutQuad',
+        delay: anime.stagger(40),
+        complete: () => {
+          rows.forEach((row) => {
+            row.style.removeProperty('opacity');
+            row.style.removeProperty('transform');
+          });
+        },
+      });
+    });
+  }
+
+  function animateRowRemoval(section, recordId) {
+    if (!canAnimate) {
+      return Promise.resolve();
+    }
+    const container = section === 'venues' ? venuesTableBody : bookingsTableBody;
+    if (!container) {
+      return Promise.resolve();
+    }
+    const row = container.querySelector(`tr[data-record-id="${recordId}"]`);
+    if (!row) {
+      return Promise.resolve();
+    }
+    anime.remove(row);
+    return new Promise((resolve) => {
+      anime({
+        targets: row,
+        opacity: 0,
+        translateX: 28,
+        duration: 220,
+        easing: 'easeInQuad',
+        complete: () => {
+          row.remove();
+          resolve();
+        },
+      });
+    });
+  }
 
   function normalizePaginationMeta(meta = {}, fallback = {}) {
     const resolved = meta && typeof meta === 'object' ? meta : {};
@@ -1227,6 +1356,7 @@
     const fragment = document.createDocumentFragment();
     state.venues.forEach((venue) => {
       const row = document.createElement('tr');
+      row.dataset.recordId = venue.id;
 
       const imageCell = document.createElement('td');
       if (venue.image_url) {
@@ -1293,6 +1423,7 @@
     updateSummary('venues');
     renderPagination('venues');
     updateTableFooter('venues');
+    animateTableRows(venuesTableBody);
   }
 
   function renderBookings() {
@@ -1301,6 +1432,7 @@
 
     state.bookings.forEach((booking) => {
       const row = document.createElement('tr');
+      row.dataset.recordId = booking.id;
 
       const guestCell = document.createElement('td');
       const guestLabel = booking.user
@@ -1356,6 +1488,7 @@
     updateSummary('bookings');
     renderPagination('bookings');
     updateTableFooter('bookings');
+    animateTableRows(bookingsTableBody);
   }
 
   function updateHeader(section) {
@@ -1405,14 +1538,26 @@
     }
     state.currentSection = section;
 
+    let activeButton = null;
     navButtons.forEach((button) => {
-      button.classList.toggle('is-active', button.dataset.target === section);
+      const isActive = button.dataset.target === section;
+      button.classList.toggle('is-active', isActive);
+      if (isActive) {
+        activeButton = button;
+      }
     });
 
+    let activeSectionElement = null;
     contentSections.forEach((contentSection) => {
       const isActive = contentSection.dataset.section === section;
       contentSection.classList.toggle('is-hidden', !isActive);
+      if (isActive) {
+        activeSectionElement = contentSection;
+      }
     });
+
+    animateActiveNavButton(activeButton);
+    animateSectionEntry(activeSectionElement);
 
     if (searchInputs[section]) {
       searchInputs[section].value = state.search[section] || '';
@@ -1529,17 +1674,94 @@
     modalTitle.textContent = mode === 'edit'
       ? `Edit ${sectionConfig[section].title.slice(0, -1)}`
       : `Add ${sectionConfig[section].title.slice(0, -1)}`;
-    submitLabel.textContent = mode === 'edit' ? 'Update' : 'Create';
+    if (submitLabel) {
+      submitLabel.textContent = mode === 'edit' ? 'Update' : 'Create';
+    }
 
-    modalBackdrop.hidden = false;
-    modalBackdrop.setAttribute('aria-hidden', 'false');
+    showModalBackdrop();
+
+    if (canAnimate && modalElement) {
+      if (modalAnimation) {
+        modalAnimation.pause();
+        modalAnimation = null;
+      }
+      anime.remove([modalBackdrop, modalElement]);
+      anime.set(modalBackdrop, { opacity: 0 });
+      anime.set(modalElement, { opacity: 0, translateY: 22, scale: 0.96 });
+      modalAnimation = anime.timeline({
+        duration: 280,
+        easing: 'easeOutQuad',
+        complete: () => {
+          resetModalStyles();
+          modalAnimation = null;
+        },
+      })
+        .add({
+          targets: modalBackdrop,
+          opacity: 1,
+          duration: 180,
+        })
+        .add(
+          {
+            targets: modalElement,
+            opacity: 1,
+            translateY: 0,
+            scale: 1,
+            duration: 280,
+          },
+          '-=120',
+        );
+    } else {
+      resetModalStyles();
+    }
   }
 
   function closeModal() {
-    modalBackdrop.hidden = true;
-    modalBackdrop.setAttribute('aria-hidden', 'true');
     state.editingId = null;
     closeAllAutocompletes();
+    if (!modalBackdrop) {
+      return;
+    }
+    if (modalBackdrop.hidden) {
+      hideModalBackdrop();
+      resetModalStyles();
+      return;
+    }
+    if (!canAnimate || !modalElement) {
+      hideModalBackdrop();
+      resetModalStyles();
+      return;
+    }
+
+    if (modalAnimation) {
+      modalAnimation.pause();
+      modalAnimation = null;
+    }
+    anime.remove([modalBackdrop, modalElement]);
+    modalAnimation = anime.timeline({
+      duration: 220,
+      easing: 'easeInOutQuad',
+      complete: () => {
+        hideModalBackdrop();
+        resetModalStyles();
+        modalAnimation = null;
+      },
+    })
+      .add({
+        targets: modalElement,
+        opacity: 0,
+        translateY: 16,
+        scale: 0.96,
+        duration: 200,
+      })
+      .add(
+        {
+          targets: modalBackdrop,
+          opacity: 0,
+          duration: 160,
+        },
+        '-=120',
+      );
   }
 
   async function loadSection(section, options = {}) {
@@ -1775,6 +1997,7 @@
       if (!response.ok || !payload.success) {
         throw new Error('Delete failed');
       }
+      await animateRowRemoval(section, recordId);
       if (section === 'venues') {
         if (
           autocompleteControllers.venue
