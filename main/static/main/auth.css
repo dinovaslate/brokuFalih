@@ -4,16 +4,16 @@
     sans-serif;
   --bg-gradient: radial-gradient(
       140% 140% at 6% -20%,
-      rgba(252, 211, 77, 0.22) 0%,
-      rgba(250, 204, 21, 0.14) 35%,
+      rgba(99, 102, 241, 0.22) 0%,
+      rgba(37, 99, 235, 0.12) 35%,
       rgba(2, 6, 23, 0.95) 72%,
       #020617 100%
     ),
     #020617;
-  --mesh-color-1: #fef08a;
-  --mesh-color-2: #fde047;
-  --mesh-color-3: #facc15;
-  --mesh-color-4: #f97316;
+  --mesh-color-1: #8098ff;
+  --mesh-color-2: #ff9ec0;
+  --mesh-color-3: #8bffe0;
+  --mesh-color-4: #ffd58a;
   --card-bg: rgba(15, 23, 42, 0.82);
   --border-color: rgba(148, 163, 184, 0.24);
   --text-color: #e2e8f0;

@@ -6,16 +6,16 @@
   --bg-muted: #050816;
   --bg-gradient: radial-gradient(
       circle at 6% -10%,
-      rgba(250, 204, 21, 0.18),
+      rgba(99, 102, 241, 0.18),
       transparent 70%
     ),
-    radial-gradient(circle at 82% 0%, rgba(253, 224, 71, 0.2), transparent 78%),
-    radial-gradient(circle at 18% 78%, rgba(248, 250, 108, 0.16), transparent 90%),
+    radial-gradient(circle at 82% 0%, rgba(147, 197, 253, 0.2), transparent 78%),
+    radial-gradient(circle at 18% 78%, rgba(16, 185, 129, 0.18), transparent 90%),
     #020617;
-  --admin-mesh-color-1: #fde047;
-  --admin-mesh-color-2: #facc15;
-  --admin-mesh-color-3: #fbbf24;
-  --admin-mesh-color-4: #fef08a;
+  --admin-mesh-color-1: #7c8cff;
+  --admin-mesh-color-2: #f6a3c7;
+  --admin-mesh-color-3: #8be4ff;
+  --admin-mesh-color-4: #b5f7de;
   --border-color: rgba(148, 163, 184, 0.18);
   --text-primary: #e2e8f0;
   --text-secondary: #94a3b8;
