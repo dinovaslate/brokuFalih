@@ -548,6 +548,55 @@
     return new Intl.NumberFormat(undefined, options).format(value);
   }
 
+  function createStarRatingElement(averageRating, ratingCount) {
+    const container = document.createElement('div');
+    container.className = 'star-rating';
+    container.setAttribute('role', 'img');
+
+    const hasRating = typeof averageRating === 'number' && Number.isFinite(averageRating);
+    const countValue = Number.isFinite(Number(ratingCount)) ? Number(ratingCount) : 0;
+
+    if (!hasRating || countValue <= 0) {
+      const label = document.createElement('span');
+      label.className = 'star-rating__no-rating';
+      label.textContent = 'No rating';
+      container.appendChild(label);
+      container.setAttribute('aria-label', 'No rating yet');
+      return container;
+    }
+
+    const normalized = Math.min(Math.max(averageRating, 0), 5);
+    const rounded = Math.round(normalized * 10) / 10;
+
+    const starsWrapper = document.createElement('span');
+    starsWrapper.className = 'star-rating__stars';
+
+    const baseStars = document.createElement('span');
+    baseStars.className = 'star-rating__base';
+    baseStars.textContent = '★★★★★';
+
+    const fillStars = document.createElement('span');
+    fillStars.className = 'star-rating__fill';
+    fillStars.textContent = '★★★★★';
+    fillStars.style.width = `${(normalized / 5) * 100}%`;
+
+    starsWrapper.append(baseStars, fillStars);
+    container.appendChild(starsWrapper);
+
+    const label = document.createElement('span');
+    label.className = 'star-rating__label';
+    const ratingCountLabel = countValue === 1 ? '1 rating' : `${countValue} ratings`;
+    label.textContent = `${rounded.toFixed(1)} · ${ratingCountLabel}`;
+    container.appendChild(label);
+
+    container.setAttribute(
+      'aria-label',
+      `Rated ${rounded.toFixed(1)} out of 5 based on ${ratingCountLabel}`,
+    );
+
+    return container;
+  }
+
   function formatDate(dateString) {
     const date = new Date(dateString);
     if (Number.isNaN(date.getTime())) {
@@ -1379,6 +1428,14 @@
       const typeCell = document.createElement('td');
       typeCell.textContent = venue.type || '—';
       row.appendChild(typeCell);
+
+      const ratingCell = document.createElement('td');
+      const ratingElement = createStarRatingElement(
+        venue.average_rating,
+        venue.rating_count,
+      );
+      ratingCell.appendChild(ratingElement);
+      row.appendChild(ratingCell);
 
       const locationCell = document.createElement('td');
       locationCell.textContent = venue.location;

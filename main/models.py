@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.conf import settings
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -49,7 +49,6 @@ class Venue(models.Model):
     def __str__(self) -> str:  # pragma: no cover - human readable only
         return self.title
 
-
 class Booking(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -79,3 +78,39 @@ class Booking(models.Model):
         else:
             self.date_paid = None
         super().save(*args, **kwargs)
+
+
+class Comment(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="comments",
+        on_delete=models.CASCADE,
+    )
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    comment = models.TextField()
+    date = models.DateField(default=timezone.localdate)
+    venue = models.ManyToManyField(
+        "Venue",
+        related_name="comments",
+        through="CommentVenue",
+    )
+
+    class Meta:
+        ordering = ["-date", "-id"]
+
+    def __str__(self) -> str:  # pragma: no cover - human readable only
+        return f"Comment by {self.user}"
+
+
+class CommentVenue(models.Model):
+    comment = models.ForeignKey(
+        Comment, related_name="venue_links", on_delete=models.CASCADE
+    )
+    venue = models.ForeignKey(
+        Venue, related_name="comment_links", on_delete=models.CASCADE
+    )
+
+    class Meta:
+        unique_together = ("comment", "venue")
