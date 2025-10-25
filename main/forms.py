@@ -114,12 +114,31 @@ class VenueForm(forms.ModelForm):
 
 
 class BookingForm(forms.ModelForm):
+    username = forms.CharField(
+        max_length=150,
+        label="Guest username",
+        widget=forms.TextInput(
+            attrs={
+                "autocomplete": "off",
+                "placeholder": "Search by username",
+            }
+        ),
+    )
     start_date = forms.DateField(input_formats=["%Y-%m-%d"])
     end_date = forms.DateField(input_formats=["%Y-%m-%d"])
 
     class Meta:
         model = Booking
-        fields = ["username", "venue", "has_been_paid", "notes"]
+        fields = ["user", "venue", "has_been_paid", "notes"]
+        widgets = {
+            "user": forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["user"].required = False
+        if self.instance and self.instance.pk:
+            self.fields["username"].initial = self.instance.user.get_username()
 
     def clean(self) -> dict[str, object]:
         cleaned = super().clean()
@@ -127,6 +146,33 @@ class BookingForm(forms.ModelForm):
         end = cleaned.get("end_date")
         if start and end and end < start:
             raise ValidationError("End date cannot be before the start date.")
+
+        if not User.objects.exists():
+            raise ValidationError("Create a user account before adding bookings.")
+
+        user_obj = cleaned.get("user")
+        if user_obj:
+            cleaned["user"] = user_obj
+            return cleaned
+
+        username = (cleaned.get("username") or "").strip()
+        if not username:
+            self.add_error("username", "Please choose a username from the list.")
+            return cleaned
+
+        try:
+            user = User.objects.get(username__iexact=username)
+        except User.DoesNotExist:
+            try:
+                user = User.objects.get(email__iexact=username)
+            except User.DoesNotExist:
+                self.add_error(
+                    "username",
+                    "The specified username does not exist. Please select an existing user.",
+                )
+                return cleaned
+
+        cleaned["user"] = user
         return cleaned
 
     def save(self, commit: bool = True) -> Booking:
