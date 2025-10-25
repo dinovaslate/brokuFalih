@@ -4,20 +4,20 @@
     sans-serif;
   --bg-gradient: radial-gradient(
       140% 140% at 6% -20%,
-      rgba(252, 211, 77, 0.22) 0%,
-      rgba(250, 204, 21, 0.14) 35%,
+      rgba(99, 102, 241, 0.22) 0%,
+      rgba(37, 99, 235, 0.12) 35%,
       rgba(2, 6, 23, 0.95) 72%,
       #020617 100%
     ),
     #020617;
-  --mesh-color-1: #fef08a;
-  --mesh-color-2: #fde047;
-  --mesh-color-3: #facc15;
-  --mesh-color-4: #f97316;
+  --mesh-color-1: #8098ff;
+  --mesh-color-2: #ff9ec0;
+  --mesh-color-3: #8bffe0;
+  --mesh-color-4: #ffd58a;
   --card-bg: rgba(15, 23, 42, 0.82);
   --border-color: rgba(148, 163, 184, 0.24);
-  --text-color: #ffffff;
-  --muted-text: #ffffff;
+  --text-color: #e2e8f0;
+  --muted-text: #94a3b8;
   --primary: #3b82f6;
   --primary-dark: #2563eb;
   --shadow-strong: 0 40px 90px rgba(2, 6, 23, 0.65);
@@ -229,11 +229,6 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.form-control input::placeholder {
-  color: #ffffff;
-  opacity: 0.68;
-}
-
 .form-control input:focus {
   outline: none;
   border-color: rgba(59, 130, 246, 0.65);
@@ -290,7 +285,7 @@
   display: none;
   background: rgba(248, 113, 113, 0.18);
   border: 1px solid rgba(248, 113, 113, 0.4);
-  color: #ffffff;
+  color: #fecaca;
   border-radius: 16px;
   padding: 0.75rem 1rem;
   font-size: 0.9rem;
@@ -332,7 +327,7 @@
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.35);
   background: rgba(15, 23, 42, 0.8);
-  color: #ffffff;
+  color: var(--text-color);
   font-size: 1.05rem;
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
@@ -433,8 +428,7 @@
   border-radius: 999px;
   border: 1px solid rgba(234, 88, 12, 0.26);
   background: rgba(234, 179, 8, 0.12);
-  color: #ffffff;
-  opacity: 0.85;
+  color: var(--muted-text);
   font-size: 0.9rem;
   transition: background 0.2s ease, border-color 0.2s ease,
     box-shadow 0.2s ease;
