@@ -18,6 +18,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .forms import BookingForm, SignupForm, VenueForm
 from .models import Booking, Venue
+from .sample_data import ensure_sample_data
 
 
 DEFAULT_PAGE_SIZE = 6
@@ -282,6 +283,8 @@ def admin_panel(request: HttpRequest) -> HttpResponse:
     forbidden = _forbid_if_not_staff(request)
     if forbidden:
         return forbidden
+
+    ensure_sample_data()
 
     User = get_user_model()
     page_size = DEFAULT_PAGE_SIZE
