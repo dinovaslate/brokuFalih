@@ -26,7 +26,48 @@
       <span class="glow glow-2" data-parallax="6"></span>
       <span class="glow glow-3" data-parallax="3"></span>
     </div>
+    <nav class="floating-nav" aria-label="Primary">
+      <div class="floating-nav__inner">
+        <a class="floating-nav__brand" href="#home">PitchPilot</a>
+        <button class="floating-nav__menu" type="button" aria-label="Toggle navigation">
+          <span></span>
+          <span></span>
+        </button>
+        <ul class="floating-nav__links">
+          <li><a class="floating-nav__link" href="#home">Home</a></li>
+          <li><a class="floating-nav__link" href="#profile">Profile</a></li>
+        </ul>
+      </div>
+    </nav>
     <main class="landing-main">{% block content %}{% endblock %}</main>
+    <footer class="site-footer" id="footer">
+      <div class="site-footer__content">
+        <div class="site-footer__brand">
+          <span class="site-footer__logo">PitchPilot™</span>
+          <p>
+            Intelligent venue orchestration for football clubs that demand a sold-out atmosphere
+            every matchday.
+          </p>
+        </div>
+        <div class="site-footer__links">
+          <div>
+            <h3>Explore</h3>
+            <ul>
+              <li><a href="#home">Home</a></li>
+              <li><a href="#profile">Profile</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3>Connect</h3>
+            <ul>
+              <li><a href="mailto:hello@pitchpilot.example">hello@pitchpilot.example</a></li>
+              <li><a href="tel:+621234567890">+62 123 4567 890</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <p class="site-footer__legal">© {% now "Y" %} PitchPilot. All rights reserved.</p>
+    </footer>
     <script src="{% static 'main/landing.js' %}" defer></script>
     {% block extra_js %}{% endblock %}
   </body>

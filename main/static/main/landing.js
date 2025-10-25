@@ -51,4 +51,60 @@ document.addEventListener("DOMContentLoaded", () => {
       counter.textContent = counter.dataset.counter || counter.textContent;
     });
   }
+
+  const floatingNav = document.querySelector(".floating-nav");
+  if (floatingNav) {
+    const navMenuButton = floatingNav.querySelector(".floating-nav__menu");
+    const navLinks = floatingNav.querySelectorAll(".floating-nav__link");
+    let lastScrollY = window.scrollY;
+    let scheduled = false;
+
+    const closeMenu = () => {
+      floatingNav.classList.remove("is-open");
+      if (navMenuButton) {
+        navMenuButton.setAttribute("aria-expanded", "false");
+      }
+    };
+
+    const updateNavVisibility = () => {
+      const currentY = window.scrollY;
+      const isScrollingDown = currentY > lastScrollY;
+
+      if (currentY <= 12) {
+        floatingNav.classList.remove("is-visible");
+        closeMenu();
+      } else if (isScrollingDown) {
+        floatingNav.classList.add("is-visible");
+      } else {
+        floatingNav.classList.remove("is-visible");
+        closeMenu();
+      }
+
+      lastScrollY = currentY;
+      scheduled = false;
+    };
+
+    const requestUpdate = () => {
+      if (!scheduled) {
+        scheduled = true;
+        window.requestAnimationFrame(updateNavVisibility);
+      }
+    };
+
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+
+    if (navMenuButton) {
+      navMenuButton.setAttribute("aria-expanded", "false");
+      navMenuButton.addEventListener("click", () => {
+        const isOpen = floatingNav.classList.toggle("is-open");
+        navMenuButton.setAttribute("aria-expanded", String(isOpen));
+      });
+    }
+
+    navLinks.forEach((link) => {
+      link.addEventListener("click", () => {
+        closeMenu();
+      });
+    });
+  }
 });
