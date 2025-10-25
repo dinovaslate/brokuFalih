@@ -326,12 +326,19 @@
     return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
   }
 
-  function formatCurrency(value) {
-    return new Intl.NumberFormat(undefined, {
+  function formatCurrency(value, { compact = false } = {}) {
+    const options = {
       style: 'currency',
       currency: 'USD',
       maximumFractionDigits: 0,
-    }).format(value);
+    };
+
+    if (compact) {
+      options.notation = 'compact';
+      options.compactDisplay = 'short';
+    }
+
+    return new Intl.NumberFormat(undefined, options).format(value);
   }
 
   function formatDate(dateString) {
@@ -364,8 +371,69 @@
     return colors;
   }
 
+  function computeNiceScale(values) {
+    const dataPoints = Array.isArray(values)
+      ? values
+          .map((value) => Number(value))
+          .filter((value) => Number.isFinite(value) && value >= 0)
+      : [];
+
+    if (dataPoints.length === 0) {
+      return { suggestedMax: undefined, stepSize: undefined };
+    }
+
+    const maxValue = Math.max(...dataPoints);
+    if (!(maxValue > 0)) {
+      return { suggestedMax: undefined, stepSize: undefined };
+    }
+
+    const exponent = Math.floor(Math.log10(maxValue));
+    const magnitude = 10 ** exponent;
+    const normalized = maxValue / magnitude;
+    let niceNormalized;
+
+    if (normalized <= 1) {
+      niceNormalized = 1;
+    } else if (normalized <= 2) {
+      niceNormalized = 2;
+    } else if (normalized <= 5) {
+      niceNormalized = 5;
+    } else {
+      niceNormalized = 10;
+    }
+
+    const suggestedMax = niceNormalized * magnitude;
+    const stepSize = suggestedMax / 5;
+
+    return { suggestedMax, stepSize };
+  }
+
   function createChartConfig(key, dataset) {
     if (key === 'sales') {
+      const { suggestedMax, stepSize } = computeNiceScale(dataset.data);
+      const yAxis = {
+        beginAtZero: true,
+        grace: '8%',
+        grid: {
+          color: 'rgba(15, 23, 42, 0.08)',
+          drawBorder: false,
+          borderDash: [4, 4],
+        },
+        ticks: {
+          maxTicksLimit: 6,
+          callback(value) {
+            return formatCurrency(value, { compact: true });
+          },
+        },
+      };
+
+      if (Number.isFinite(suggestedMax)) {
+        yAxis.suggestedMax = suggestedMax;
+      }
+      if (Number.isFinite(stepSize) && stepSize > 0) {
+        yAxis.ticks.stepSize = stepSize;
+      }
+
       return {
         type: 'line',
         data: {
@@ -380,6 +448,9 @@
               fill: true,
               pointRadius: 4,
               pointHoverRadius: 6,
+              pointBorderWidth: 2,
+              pointBackgroundColor: '#ffffff',
+              pointBorderColor: '#2563eb',
               borderWidth: 2,
             },
           ],
@@ -388,33 +459,46 @@
           responsive: true,
           maintainAspectRatio: false,
           interaction: { intersect: false, mode: 'index' },
+          layout: {
+            padding: {
+              top: 12,
+              right: 16,
+              bottom: 8,
+              left: 8,
+            },
+          },
           scales: {
             x: {
-              grid: { display: false },
+              grid: {
+                display: true,
+                color: 'rgba(15, 23, 42, 0.04)',
+                drawBorder: false,
+              },
               ticks: {
                 maxRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 6,
                 callback(value, index) {
                   const label = dataset.labels[index];
                   return formatDate(label);
                 },
               },
             },
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback(value) {
-                  return formatCurrency(value);
-                },
-              },
-            },
+            y: yAxis,
           },
           plugins: {
             legend: { display: false },
             tooltip: {
               callbacks: {
+                title(context) {
+                  if (!context.length) {
+                    return '';
+                  }
+                  return formatDate(context[0].label);
+                },
                 label(context) {
-                  const amount = context.parsed.y ?? context.parsed;
-                  return `${formatCurrency(amount)} on ${formatDate(context.label)}`;
+                  const amount = context.parsed.y ?? context.parsed ?? 0;
+                  return formatCurrency(amount);
                 },
               },
             },
@@ -433,6 +517,7 @@
             backgroundColor: getPopularityColors(dataset.labels.length),
             borderWidth: 0,
             hoverOffset: 12,
+            borderRadius: 10,
           },
         ],
       },
@@ -440,11 +525,21 @@
         responsive: true,
         maintainAspectRatio: false,
         cutout: '58%',
+        layout: {
+          padding: {
+            top: 12,
+            bottom: 12,
+            left: 12,
+            right: 12,
+          },
+        },
         plugins: {
           legend: {
             position: 'bottom',
             labels: {
               boxWidth: 14,
+              usePointStyle: true,
+              pointStyle: 'circle',
               padding: 16,
             },
           },
@@ -454,7 +549,26 @@
                 const value = Number.isFinite(context.parsed) ? context.parsed : 0;
                 const suffix = value === 1 ? 'booking' : 'bookings';
                 const label = context.label || '';
-                return `${label}: ${value} ${suffix}`;
+                const datasetValues =
+                  context &&
+                  context.chart &&
+                  context.chart.data &&
+                  Array.isArray(context.chart.data.datasets)
+                    ? context.chart.data.datasets[context.datasetIndex]?.data || []
+                    : [];
+                const total = Array.isArray(datasetValues)
+                  ? datasetValues.reduce(
+                      (sum, item) => sum + (Number(item) || 0),
+                      0,
+                    )
+                  : 0;
+                const percentage = total > 0 ? (value / total) * 100 : 0;
+                let percentageLabel = '';
+                if (Number.isFinite(percentage) && total > 0) {
+                  const precision = percentage >= 10 ? 0 : 1;
+                  percentageLabel = ` (${percentage.toFixed(precision)}%)`;
+                }
+                return `${label}: ${value} ${suffix}${percentageLabel}`;
               },
             },
           },

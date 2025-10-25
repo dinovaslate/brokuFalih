@@ -45,73 +45,77 @@
       </header>
       <div class="content-body">
         <section class="data-section" data-section="venues" aria-label="Venues table">
-          <div class="analytics-grid" aria-label="Venue performance charts">
-            <article class="chart-card">
-              <header class="chart-card__header">
-                <h2 class="chart-card__title">Daily sales</h2>
-                <p class="chart-card__subtitle">Sum of paid bookings per day.</p>
-              </header>
-              <canvas
-                id="venue-sales-chart"
-                class="chart-canvas"
-                role="img"
-                aria-label="Line chart showing venue sales per day"
-              ></canvas>
-              <p class="chart-empty" data-chart-empty="sales">No paid bookings yet.</p>
-            </article>
-            <article class="chart-card">
-              <header class="chart-card__header">
-                <h2 class="chart-card__title">Venue popularity</h2>
-                <p class="chart-card__subtitle">Share of paid bookings by venue.</p>
-              </header>
-              <canvas
-                id="venue-popularity-chart"
-                class="chart-canvas"
-                role="img"
-                aria-label="Doughnut chart showing paid bookings per venue"
-              ></canvas>
-              <p class="chart-empty" data-chart-empty="popularity">No paid bookings yet.</p>
-            </article>
+          <div class="surface-card surface-card--analytics" aria-label="Venue performance charts">
+            <div class="analytics-grid">
+              <article class="chart-card">
+                <header class="chart-card__header">
+                  <h2 class="chart-card__title">Daily sales</h2>
+                  <p class="chart-card__subtitle">Sum of paid bookings per day.</p>
+                </header>
+                <canvas
+                  id="venue-sales-chart"
+                  class="chart-canvas"
+                  role="img"
+                  aria-label="Line chart showing venue sales per day"
+                ></canvas>
+                <p class="chart-empty" data-chart-empty="sales">No paid bookings yet.</p>
+              </article>
+              <article class="chart-card">
+                <header class="chart-card__header">
+                  <h2 class="chart-card__title">Venue popularity</h2>
+                  <p class="chart-card__subtitle">Share of paid bookings by venue.</p>
+                </header>
+                <canvas
+                  id="venue-popularity-chart"
+                  class="chart-canvas"
+                  role="img"
+                  aria-label="Doughnut chart showing paid bookings per venue"
+                ></canvas>
+                <p class="chart-empty" data-chart-empty="popularity">No paid bookings yet.</p>
+              </article>
+            </div>
           </div>
-          <div class="table-controls">
-            <label class="search-field">
-              <span class="sr-only">Search venues</span>
-              <input
-                type="search"
-                data-search-input="venues"
-                placeholder="Search venues"
-                autocomplete="off"
-                spellcheck="false"
-              />
-            </label>
-          </div>
-          <div class="table-wrapper" data-table-wrapper="venues">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">Image</th>
-                  <th scope="col">Title</th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Location</th>
-                  <th scope="col">Facilities</th>
-                  <th scope="col">Price</th>
-                  <th scope="col" class="actions-col">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="venues-table-body"></tbody>
-            </table>
-          </div>
-          <p
-            class="empty-state"
-            data-empty="venues"
-            data-empty-default="No venues available yet."
-            data-empty-filtered="No venues match your search."
-          >
-            No venues available yet.
-          </p>
-          <div class="table-footer is-hidden" data-table-footer="venues">
-            <p class="table-summary" data-summary="venues"></p>
-            <nav class="pagination" data-pagination="venues" aria-label="Venues pagination"></nav>
+          <div class="surface-card surface-card--table">
+            <div class="table-controls">
+              <label class="search-field">
+                <span class="sr-only">Search venues</span>
+                <input
+                  type="search"
+                  data-search-input="venues"
+                  placeholder="Search venues"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </label>
+            </div>
+            <div class="table-wrapper" data-table-wrapper="venues">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Image</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Location</th>
+                    <th scope="col">Facilities</th>
+                    <th scope="col">Price</th>
+                    <th scope="col" class="actions-col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="venues-table-body"></tbody>
+              </table>
+            </div>
+            <p
+              class="empty-state"
+              data-empty="venues"
+              data-empty-default="No venues available yet."
+              data-empty-filtered="No venues match your search."
+            >
+              No venues available yet.
+            </p>
+            <div class="table-footer is-hidden" data-table-footer="venues">
+              <p class="table-summary" data-summary="venues"></p>
+              <nav class="pagination" data-pagination="venues" aria-label="Venues pagination"></nav>
+            </div>
           </div>
         </section>
         <section
@@ -119,44 +123,46 @@
           data-section="bookings"
           aria-label="Bookings table"
         >
-          <div class="table-controls">
-            <label class="search-field">
-              <span class="sr-only">Search bookings</span>
-              <input
-                type="search"
-                data-search-input="bookings"
-                placeholder="Search bookings"
-                autocomplete="off"
-                spellcheck="false"
-              />
-            </label>
-          </div>
-          <div class="table-wrapper" data-table-wrapper="bookings">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">Guest</th>
-                  <th scope="col">Venue</th>
-                  <th scope="col">Dates</th>
-                  <th scope="col">Paid</th>
-                  <th scope="col">Notes</th>
-                  <th scope="col" class="actions-col">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="bookings-table-body"></tbody>
-            </table>
-          </div>
-          <p
-            class="empty-state"
-            data-empty="bookings"
-            data-empty-default="No bookings recorded yet."
-            data-empty-filtered="No bookings match your search."
-          >
-            No bookings recorded yet.
-          </p>
-          <div class="table-footer is-hidden" data-table-footer="bookings">
-            <p class="table-summary" data-summary="bookings"></p>
-            <nav class="pagination" data-pagination="bookings" aria-label="Bookings pagination"></nav>
+          <div class="surface-card surface-card--table">
+            <div class="table-controls">
+              <label class="search-field">
+                <span class="sr-only">Search bookings</span>
+                <input
+                  type="search"
+                  data-search-input="bookings"
+                  placeholder="Search bookings"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </label>
+            </div>
+            <div class="table-wrapper" data-table-wrapper="bookings">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Guest</th>
+                    <th scope="col">Venue</th>
+                    <th scope="col">Dates</th>
+                    <th scope="col">Paid</th>
+                    <th scope="col">Notes</th>
+                    <th scope="col" class="actions-col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="bookings-table-body"></tbody>
+              </table>
+            </div>
+            <p
+              class="empty-state"
+              data-empty="bookings"
+              data-empty-default="No bookings recorded yet."
+              data-empty-filtered="No bookings match your search."
+            >
+              No bookings recorded yet.
+            </p>
+            <div class="table-footer is-hidden" data-table-footer="bookings">
+              <p class="table-summary" data-summary="bookings"></p>
+              <nav class="pagination" data-pagination="bookings" aria-label="Bookings pagination"></nav>
+            </div>
           </div>
         </section>
       </div>
