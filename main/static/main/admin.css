@@ -17,6 +17,8 @@
   box-sizing: border-box;
 }
 
+
+
 body.admin-body {
   margin: 0;
   background: var(--bg-muted);
@@ -377,6 +379,10 @@ body.admin-body {
 .data-section.is-hidden,
 .form-grid.is-hidden {
   display: none;
+}
+[aria-hidden="true"] {
+  /* Styles to apply to any element with an aria-label */
+  display: none !important;
 }
 
 .toast {

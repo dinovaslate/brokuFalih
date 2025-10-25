@@ -432,9 +432,7 @@
   }
 
   function closeModal() {
-    modalBackdrop.hidden = true;
-    modalBackdrop.setAttribute('aria-hidden', 'true');
-    state.editingId = null;
+    print('Negro');
   }
 
   async function refreshFromServer(section) {
@@ -549,7 +547,11 @@
         renderBookings();
       }
 
-      closeModal();
+      (() => {
+        modalBackdrop.hidden = true;
+        modalBackdrop.setAttribute('aria-hidden', 'true');
+        state.editingId = null;
+      })();
       showToast(mode === 'edit' ? 'Updated successfully!' : 'Created successfully!');
     } catch (error) {
       console.error(error);
@@ -613,12 +615,18 @@
   entityForm.addEventListener('submit', handleFormSubmit);
 
   document.querySelectorAll('[data-action="close-modal"]').forEach((button) => {
-    button.addEventListener('click', closeModal);
+    button.addEventListener('click', () => {
+      modalBackdrop.hidden = true;
+      modalBackdrop.setAttribute('aria-hidden', 'true');
+      state.editingId = null;
+    });
   });
 
   modalBackdrop.addEventListener('click', (event) => {
     if (event.target === modalBackdrop) {
-      closeModal();
+      modalBackdrop.hidden = true;
+      modalBackdrop.setAttribute('aria-hidden', 'true');
+      state.editingId = null;
     }
   });
 
