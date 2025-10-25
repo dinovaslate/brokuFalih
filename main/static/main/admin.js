@@ -98,8 +98,29 @@
     return { data: [], meta: {} };
   }
 
+  function normalizeSeries(raw) {
+    const source = raw && typeof raw === 'object' ? raw : {};
+    const rawLabels = Array.isArray(source.labels) ? source.labels : [];
+    const rawData = Array.isArray(source.data) ? source.data : [];
+    const length = Math.min(rawLabels.length, rawData.length);
+    const labels = [];
+    const data = [];
+    for (let index = 0; index < length; index += 1) {
+      labels.push(String(rawLabels[index]));
+      const numeric = Number(rawData[index]);
+      data.push(Number.isFinite(numeric) ? numeric : 0);
+    }
+    return { labels, data };
+  }
+
   const initialVenues = parseInitialPayload('initial-venues');
   const initialBookings = parseInitialPayload('initial-bookings');
+  const initialSalesData = parseInitialData('sales-chart-data');
+  const initialPopularityData = parseInitialData('popularity-chart-data');
+  const analyticsData = {
+    sales: normalizeSeries(initialSalesData),
+    popularity: normalizeSeries(initialPopularityData),
+  };
 
   state.venues = initialVenues.data;
   state.bookings = initialBookings.data;
@@ -148,6 +169,20 @@
   const tableFooters = {
     venues: document.querySelector('[data-table-footer="venues"]'),
     bookings: document.querySelector('[data-table-footer="bookings"]'),
+  };
+  const chartElements = {
+    sales: {
+      canvas: document.getElementById('venue-sales-chart'),
+      empty: document.querySelector('[data-chart-empty="sales"]'),
+    },
+    popularity: {
+      canvas: document.getElementById('venue-popularity-chart'),
+      empty: document.querySelector('[data-chart-empty="popularity"]'),
+    },
+  };
+  const chartInstances = {
+    sales: null,
+    popularity: null,
   };
   const modalBackdrop = document.querySelector('[data-modal]');
   const modalTitle = document.getElementById('modal-title');
@@ -309,6 +344,196 @@
       month: 'short',
       day: 'numeric',
     });
+  }
+
+  function getPopularityColors(count) {
+    const palette = [
+      '#2563eb',
+      '#4f46e5',
+      '#0ea5e9',
+      '#14b8a6',
+      '#22c55e',
+      '#f97316',
+      '#ec4899',
+      '#facc15',
+    ];
+    const colors = [];
+    for (let index = 0; index < count; index += 1) {
+      colors.push(palette[index % palette.length]);
+    }
+    return colors;
+  }
+
+  function createChartConfig(key, dataset) {
+    if (key === 'sales') {
+      return {
+        type: 'line',
+        data: {
+          labels: dataset.labels,
+          datasets: [
+            {
+              label: 'Daily sales',
+              data: dataset.data,
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37, 99, 235, 0.18)',
+              tension: 0.35,
+              fill: true,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              borderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                maxRotation: 0,
+                callback(value, index) {
+                  const label = dataset.labels[index];
+                  return formatDate(label);
+                },
+              },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback(value) {
+                  return formatCurrency(value);
+                },
+              },
+            },
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  const amount = context.parsed.y ?? context.parsed;
+                  return `${formatCurrency(amount)} on ${formatDate(context.label)}`;
+                },
+              },
+            },
+          },
+        },
+      };
+    }
+
+    return {
+      type: 'doughnut',
+      data: {
+        labels: dataset.labels,
+        datasets: [
+          {
+            data: dataset.data,
+            backgroundColor: getPopularityColors(dataset.labels.length),
+            borderWidth: 0,
+            hoverOffset: 12,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '58%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 14,
+              padding: 16,
+            },
+          },
+          tooltip: {
+            callbacks: {
+              label(context) {
+                const value = Number.isFinite(context.parsed) ? context.parsed : 0;
+                const suffix = value === 1 ? 'booking' : 'bookings';
+                const label = context.label || '';
+                return `${label}: ${value} ${suffix}`;
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
+  function renderChart(key) {
+    const element = chartElements[key];
+    if (!element || !element.canvas) {
+      return;
+    }
+    const dataset = analyticsData[key] || { labels: [], data: [] };
+    const hasData =
+      Array.isArray(dataset.labels)
+      && dataset.labels.length > 0
+      && Array.isArray(dataset.data)
+      && dataset.data.some((value) => Number(value) > 0);
+
+    if (!hasData) {
+      if (chartInstances[key]) {
+        chartInstances[key].destroy();
+        chartInstances[key] = null;
+      }
+      if (element.canvas) {
+        element.canvas.classList.add('is-hidden');
+      }
+      if (element.empty) {
+        element.empty.classList.remove('is-hidden');
+      }
+      return;
+    }
+
+    if (element.canvas) {
+      element.canvas.classList.remove('is-hidden');
+    }
+    if (element.empty) {
+      element.empty.classList.add('is-hidden');
+    }
+
+    if (typeof Chart === 'undefined') {
+      return;
+    }
+
+    if (!chartInstances[key]) {
+      chartInstances[key] = new Chart(element.canvas, createChartConfig(key, dataset));
+      return;
+    }
+
+    const chart = chartInstances[key];
+    chart.data.labels = dataset.labels.slice();
+    chart.data.datasets[0].data = dataset.data.slice();
+    if (key === 'popularity') {
+      chart.data.datasets[0].backgroundColor = getPopularityColors(dataset.labels.length);
+    }
+    chart.update();
+  }
+
+  function setChartData(key, raw) {
+    analyticsData[key] = normalizeSeries(raw);
+    renderChart(key);
+  }
+
+  function updateAnalytics(meta) {
+    if (!meta || typeof meta !== 'object') {
+      return;
+    }
+    if (Object.prototype.hasOwnProperty.call(meta, 'sales')) {
+      setChartData('sales', meta.sales);
+    }
+    if (Object.prototype.hasOwnProperty.call(meta, 'popularity')) {
+      setChartData('popularity', meta.popularity);
+    }
+  }
+
+  function initializeCharts() {
+    renderChart('sales');
+    renderChart('popularity');
   }
 
   function showToast(message) {
@@ -1207,6 +1432,7 @@
         }
       } else if (section === 'bookings') {
         renderBookings();
+        updateAnalytics(meta.analytics || (payload.meta ? payload.meta.analytics : undefined));
       }
 
       updateActionButton();
@@ -1447,6 +1673,7 @@
     });
   });
 
+  initializeCharts();
   renderVenues();
   renderBookings();
   updateHeader(state.currentSection);

@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Case, Q, Value, When, CharField
+from django.db.models import Case, CharField, Count, Q, Sum, Value, When
 from django.db.models.functions import Cast, Coalesce, Concat
 from django.http import (
     HttpRequest,
@@ -88,13 +88,50 @@ def _serialize_booking(booking: Booking) -> dict[str, object]:
         "venue": {
             "id": booking.venue_id,
             "title": booking.venue.title,
+            "price": booking.venue.price,
         },
         "has_been_paid": booking.has_been_paid,
+        "date_paid": booking.date_paid.isoformat() if booking.date_paid else None,
         "start_date": booking.date.start_date.isoformat(),
         "end_date": booking.date.end_date.isoformat(),
         "notes": booking.notes,
         "created_at": booking.created_at.isoformat(),
         "updated_at": booking.updated_at.isoformat(),
+    }
+
+
+def _build_booking_analytics() -> dict[str, dict[str, list]]:
+    paid_bookings = Booking.objects.filter(has_been_paid=True, date_paid__isnull=False)
+
+    sales_queryset = (
+        paid_bookings.values("date_paid")
+        .annotate(total_sales=Sum("venue__price"))
+        .order_by("date_paid")
+    )
+    sales_labels: list[str] = []
+    sales_totals: list[int] = []
+    for item in sales_queryset:
+        date_value = item.get("date_paid")
+        if date_value is None:
+            continue
+        sales_labels.append(date_value.isoformat())
+        sales_totals.append(int(item.get("total_sales") or 0))
+
+    popularity_queryset = (
+        paid_bookings.values("venue__title")
+        .annotate(total_bookings=Count("id"))
+        .order_by("venue__title")
+    )
+    popularity_labels: list[str] = []
+    popularity_totals: list[int] = []
+    for item in popularity_queryset:
+        title = item.get("venue__title") or "Unknown venue"
+        popularity_labels.append(title)
+        popularity_totals.append(int(item.get("total_bookings") or 0))
+
+    return {
+        "sales": {"labels": sales_labels, "data": sales_totals},
+        "popularity": {"labels": popularity_labels, "data": popularity_totals},
     }
 
 
@@ -251,6 +288,7 @@ def admin_panel(request: HttpRequest) -> HttpResponse:
     venues_queryset = Venue.objects.all()
     venues_total = venues_queryset.count()
     bookings_queryset = Booking.objects.select_related("venue", "date", "user")
+    analytics = _build_booking_analytics()
 
     venues_data, venues_meta = _build_paginated_payload(
         venues_queryset,
@@ -266,12 +304,13 @@ def admin_panel(request: HttpRequest) -> HttpResponse:
         page_size=page_size,
         serializer=_serialize_booking,
         query="",
-        extra_meta={"has_users": User.objects.exists()},
+        extra_meta={"has_users": User.objects.exists(), "analytics": analytics},
     )
     context = {
         "venues": {"data": venues_data, "meta": venues_meta},
         "bookings": {"data": bookings_data, "meta": bookings_meta},
         "has_users": bookings_meta["has_users"],
+        "analytics": analytics,
     }
     return render(request, "main/admin_panel.html", context)
 
@@ -370,13 +409,14 @@ def bookings_list_api(request: HttpRequest) -> JsonResponse:
     bookings_queryset = Booking.objects.select_related("venue", "date", "user")
     bookings_queryset = _apply_booking_search(bookings_queryset, query)
     User = get_user_model()
+    analytics = _build_booking_analytics()
     data, meta = _build_paginated_payload(
         bookings_queryset,
         page=page,
         page_size=page_size,
         serializer=_serialize_booking,
         query=query,
-        extra_meta={"has_users": User.objects.exists()},
+        extra_meta={"has_users": User.objects.exists(), "analytics": analytics},
     )
     return JsonResponse({"success": True, "data": data, "meta": meta})
 
