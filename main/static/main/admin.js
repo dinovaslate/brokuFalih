@@ -1,4 +1,82 @@
 (function () {
+  const reduceMotionQuery =
+    typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)')
+      : null;
+  const reduceMotion = reduceMotionQuery && reduceMotionQuery.matches;
+  if (reduceMotion || typeof anime === 'undefined') {
+    return;
+  }
+
+  const sidebar = document.querySelector('.sidebar');
+  const navButtons = document.querySelectorAll('.sidebar-nav .nav-link');
+  const contentHeader = document.querySelector('.content-header');
+  const surfaceCards = document.querySelectorAll('.surface-card');
+
+  if (!sidebar && !navButtons.length && !contentHeader && !surfaceCards.length) {
+    return;
+  }
+
+  if (sidebar) {
+    anime.set(sidebar, { opacity: 0, translateX: -32 });
+  }
+  if (navButtons.length) {
+    anime.set(navButtons, { opacity: 0, translateX: -12 });
+  }
+  if (contentHeader) {
+    anime.set(contentHeader, { opacity: 0, translateY: -16 });
+  }
+  if (surfaceCards.length) {
+    anime.set(surfaceCards, { opacity: 0, translateY: 24 });
+  }
+
+  const timeline = anime.timeline({ easing: 'easeOutQuad', duration: 620, autoplay: false });
+
+  if (sidebar) {
+    timeline.add({ targets: sidebar, opacity: 1, translateX: 0 });
+  }
+
+  if (navButtons.length) {
+    timeline.add(
+      {
+        targets: navButtons,
+        opacity: 1,
+        translateX: 0,
+        delay: anime.stagger(80),
+      },
+      sidebar ? '-=320' : 0,
+    );
+  }
+
+  if (contentHeader) {
+    timeline.add(
+      {
+        targets: contentHeader,
+        opacity: 1,
+        translateY: 0,
+      },
+      sidebar || navButtons.length ? '-=360' : 0,
+    );
+  }
+
+  if (surfaceCards.length) {
+    timeline.add(
+      {
+        targets: surfaceCards,
+        opacity: 1,
+        translateY: 0,
+        delay: anime.stagger(140),
+      },
+      '-=260',
+    );
+  }
+
+  if (timeline.children && timeline.children.length) {
+    timeline.play();
+  }
+})();
+
+(function () {
   const app = document.getElementById('admin-app');
   if (!app) {
     return;
