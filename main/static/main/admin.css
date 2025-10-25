@@ -483,6 +483,7 @@ body.admin-body {
   width: 100%;
   font-weight: 500;
   cursor: pointer;
+  flex-direction: row !important;
 }
 
 .checkbox:hover {
