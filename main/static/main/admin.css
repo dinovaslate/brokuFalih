@@ -428,6 +428,50 @@ body.admin-body {
   font-size: 0.9rem;
 }
 
+.star-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.star-rating__stars {
+  position: relative;
+  display: inline-block;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.star-rating__base,
+.star-rating__fill {
+  display: inline-block;
+  width: 100%;
+  letter-spacing: 2px;
+}
+
+.star-rating__base {
+  color: rgba(148, 163, 184, 0.45);
+}
+
+.star-rating__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  color: #f59e0b;
+  white-space: nowrap;
+}
+
+.star-rating__label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.star-rating__no-rating {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
 .pagination {
   display: flex;
   gap: 8px;

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from datetime import timedelta
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 
-from .models import Booking, BookingDate, Venue
+from .models import Booking, BookingDate, Comment, Venue
 
 UserModel = get_user_model()
 
@@ -137,6 +137,29 @@ SAMPLE_BOOKINGS: list[dict[str, object]] = [
     },
 ]
 
+SAMPLE_REVIEWS: list[dict[str, object]] = [
+    {
+        "username": "demo.alex",
+        "rating": 5,
+        "comment": "{title} exceeded our expectations with spotless facilities and attentive staff.",
+    },
+    {
+        "username": "demo.briana",
+        "rating": 4,
+        "comment": "Loved the atmosphere at {title}; we'll definitely book again soon!",
+    },
+    {
+        "username": "demo.chloe",
+        "rating": 5,
+        "comment": "Training sessions at {title} ran smoothly thanks to the well-kept courts.",
+    },
+    {
+        "username": "demo.darius",
+        "rating": 4,
+        "comment": "Great experience at {title}—excellent amenities and easy check-in process.",
+    },
+]
+
 
 def _get_or_create_users() -> dict[str, UserModel]:
     users: dict[str, UserModel] = {}
@@ -221,23 +244,60 @@ def _create_bookings(users: dict[str, UserModel], venues: dict[str, Venue], *, b
         booking.save()
 
 
+def _seed_fake_reviews(users: dict[str, UserModel]) -> None:
+    """Populate venues with deterministic review data when missing."""
+
+    tables = set(connection.introspection.table_names())
+    comment_table = Comment._meta.db_table
+    through_table = Comment.venue.through._meta.db_table
+    if comment_table not in tables or through_table not in tables:
+        return
+
+    available_users = list(users.values())
+    if not available_users:
+        available_users = list(UserModel.objects.all())
+    if not available_users:
+        return
+
+    today = timezone.localdate()
+
+    for venue_index, venue in enumerate(Venue.objects.all().order_by("id")):
+        if venue.comments.exists():
+            continue
+
+        for offset, template in enumerate(SAMPLE_REVIEWS):
+            user = users.get(template.get("username"))
+            if user is None:
+                user = available_users[(venue_index + offset) % len(available_users)]
+
+            comment = Comment.objects.create(
+                user=user,
+                rating=int(template.get("rating", 5)),
+                comment=template["comment"].format(title=venue.title),
+                date=today - timedelta(days=(venue_index + offset) % 7),
+            )
+            comment.venue.add(venue)
+
+
 def ensure_sample_data(*, base_date=None) -> None:
-    """Populate the database with demo venues and bookings when empty.
+    """Populate the database with demo venues, bookings, and reviews.
 
     The admin panel graphs and tables look empty without any data. This helper
     seeds a small set of deterministic demo records so that new environments
-    immediately showcase venue activity and booking analytics. Real data is
-    left untouched: the fixtures only run when no bookings exist yet. The
-    caller can override ``base_date`` for deterministic testing.
+    immediately showcase venue activity, rating visuals, and booking analytics.
+    Real data is preserved: bookings are recreated idempotently so existing
+    reservations remain untouched, while venue reviews are added solely for
+    venues lacking feedback. The caller can override ``base_date`` for
+    deterministic testing.
     """
-
-    if Booking.objects.exists():
-        return
 
     with transaction.atomic():
         venues = _get_or_create_venues()
         users = _get_or_create_users()
+
         _create_bookings(users, venues, base_date=base_date)
+
+        _seed_fake_reviews(users)
 
         # Ensure we still have venues even if bookings were skipped for safety.
         if not Venue.objects.exists():

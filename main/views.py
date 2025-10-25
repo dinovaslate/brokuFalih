@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Case, CharField, Count, Q, Sum, Value, When
+from django.db.models import Avg, Case, CharField, Count, Q, Sum, Value, When
 from django.db.models.functions import Cast, Coalesce, Concat
 from django.http import (
     HttpRequest,
@@ -53,6 +53,19 @@ def _forbid_if_not_staff(request: HttpRequest) -> HttpResponse | None:
 
 
 def _serialize_venue(venue: Venue) -> dict[str, object]:
+    average_rating_attr = getattr(venue, "average_rating", None)
+    average_rating = (
+        float(average_rating_attr) if average_rating_attr is not None else None
+    )
+    rating_count_attr = getattr(venue, "rating_count", None)
+    rating_count = (
+        int(rating_count_attr)
+        if rating_count_attr is not None
+        else venue.comments.count()
+    )
+    if average_rating is None:
+        average = venue.comments.aggregate(avg=Avg("rating"))["avg"]
+        average_rating = float(average) if average is not None else None
     return {
         "id": venue.id,
         "title": venue.title,
@@ -64,7 +77,16 @@ def _serialize_venue(venue: Venue) -> dict[str, object]:
         "image_url": venue.image.url if venue.image else "",
         "created_at": venue.created_at.isoformat(),
         "updated_at": venue.updated_at.isoformat(),
-}
+        "average_rating": average_rating,
+        "rating_count": int(rating_count),
+    }
+
+
+def _base_venue_queryset():
+    return Venue.objects.annotate(
+        average_rating=Avg("comments__rating"),
+        rating_count=Count("comments", distinct=True),
+    )
 
 
 def _serialize_user(user) -> dict[str, object] | None:
@@ -288,8 +310,8 @@ def admin_panel(request: HttpRequest) -> HttpResponse:
 
     User = get_user_model()
     page_size = DEFAULT_PAGE_SIZE
-    venues_queryset = Venue.objects.all()
-    venues_total = venues_queryset.count()
+    venues_queryset = _base_venue_queryset()
+    venues_total = Venue.objects.count()
     bookings_queryset = Booking.objects.select_related("venue", "date", "user")
     analytics = _build_booking_analytics()
 
@@ -338,7 +360,7 @@ def venues_list_api(request: HttpRequest) -> JsonResponse:
     )
 
     total_available = Venue.objects.count()
-    venues_queryset = Venue.objects.all()
+    venues_queryset = _base_venue_queryset()
     venues_queryset = _apply_venue_search(venues_queryset, query)
     data, meta = _build_paginated_payload(
         venues_queryset,
