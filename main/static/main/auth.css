@@ -59,6 +59,11 @@
   background: radial-gradient(circle at 30% 30%, var(--mesh-color, #fff) 0%, transparent 68%);
 }
 
+.gradient-mesh .mesh-bounce {
+  animation-name: meshBounce;
+  animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1);
+}
+
 .mesh-1 {
   top: -15%;
   left: -12%;
@@ -100,6 +105,24 @@
   }
   70% {
     transform: translate3d(-24px, 20px, 0) scale(0.98);
+  }
+}
+
+@keyframes meshBounce {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  22% {
+    transform: translate3d(26px, -32px, 0) scale(1.05);
+  }
+  45% {
+    transform: translate3d(-16px, -10px, 0) scale(0.97);
+  }
+  72% {
+    transform: translate3d(-28px, 28px, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(18px, 32px, 0) scale(1.01);
   }
 }
 
@@ -158,6 +181,13 @@
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-mesh .mesh {
+    animation: none;
+    transform: none;
+  }
 }
 
 .form-control {
