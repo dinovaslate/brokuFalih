@@ -683,9 +683,15 @@ body.admin-body {
   display: block;
 }
 
+
+.admin-body.modal-open {
+  overflow: hidden;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
+  padding: 32px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -697,11 +703,13 @@ body.admin-body {
 .modal {
   background: var(--surface-elevated);
   border-radius: 24px;
-  width: min(560px, calc(100% - 32px));
+  position: relative;
+  width: min(560px, calc(100% - 48px));
   box-shadow: var(--shadow-lg);
-  max-height: 90vh;
+  max-height: min(90vh, calc(100vh - 64px));
   display: flex;
   flex-direction: column;
+  z-index: 1;
 }
 
 .modal-header,

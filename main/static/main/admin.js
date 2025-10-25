@@ -342,6 +342,9 @@
     }
     modalBackdrop.hidden = false;
     modalBackdrop.setAttribute('aria-hidden', 'false');
+    if (document.body) {
+      document.body.classList.add('modal-open');
+    }
   }
 
   function hideModalBackdrop() {
@@ -350,6 +353,9 @@
     }
     modalBackdrop.hidden = true;
     modalBackdrop.setAttribute('aria-hidden', 'true');
+    if (document.body) {
+      document.body.classList.remove('modal-open');
+    }
   }
 
   function animateActiveNavButton(button) {
@@ -2392,11 +2398,13 @@
     });
   });
 
-  modalBackdrop.addEventListener('click', (event) => {
-    if (event.target === modalBackdrop) {
-      closeModal();
-    }
-  });
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener('click', (event) => {
+      if (event.target === modalBackdrop) {
+        closeModal();
+      }
+    });
+  }
 
   venuesTableBody.addEventListener('click', (event) => {
     const button = event.target.closest('button');
