@@ -4,7 +4,7 @@
 {% block title %}Player HQ{% endblock %}
 
 {% block content %}
-  <div class="landing-wrapper" id="top">
+  <div class="landing-wrapper">
     <header class="hero" data-animate="fade-up">
       <div class="hero-copy">
         <span class="eyebrow">PitchPilot™ Player Hub</span>
@@ -325,39 +325,6 @@
       </div>
     </section>
 
-    <section class="section profile-suite" id="player-profile" data-animate="fade-up">
-      <header class="section-heading">
-        <h2>Your profile cockpit keeps every stat synchronized</h2>
-        <p>
-          Glide through availability, wallet balances, and squad invites with a personalized hub
-          that adapts to your playstyle.
-        </p>
-      </header>
-      <div class="profile-grid">
-        <article class="profile-card">
-          <h3>Performance timeline</h3>
-          <p>
-            Follow every match highlight with auto-tagged replays, training notes, and wellness
-            prompts tuned to your workload.
-          </p>
-        </article>
-        <article class="profile-card">
-          <h3>Wallet &amp; rewards</h3>
-          <p>
-            Earn loyalty boosts, split payments with teammates, and redeem spotlight boosts to push
-            your squad to the featured carousel.
-          </p>
-        </article>
-        <article class="profile-card">
-          <h3>Squad sync</h3>
-          <p>
-            Coordinate rosters, assign captains, and let MatchFlow AI auto-fill subs when someone is
-            running late to kickoff.
-          </p>
-        </article>
-      </div>
-    </section>
-
     <section class="section closing" data-animate="fade-up">
       <div class="closing-card">
         <div class="closing-copy">
@@ -373,59 +340,5 @@
         </div>
       </div>
     </section>
-
-    <footer class="site-footer">
-      <div class="footer-brand">
-        <a class="footer-logo" href="#top" aria-label="Back to top">
-          <span aria-hidden="true">PitchPilot</span>
-        </a>
-        <p>
-          PitchPilot fuels electrifying fixtures with AI scheduling, cinematic match coverage, and
-          hyper-personalized fan experiences.
-        </p>
-      </div>
-      <div class="footer-columns">
-        <div>
-          <h3>Discover</h3>
-          <ul>
-            <li><a href="#top-venues">Flagship venues</a></li>
-            <li><a href="#momentum">Momentum insights</a></li>
-            <li><a href="#player-profile">Profile suite</a></li>
-          </ul>
-        </div>
-        <div>
-          <h3>Support</h3>
-          <ul>
-            <li><a href="mailto:support@pitchpilot.gg">Email concierge</a></li>
-            <li><a href="tel:+628001112233">Hotline +62 800-111-2233</a></li>
-            <li><a href="#">Implementation playbook</a></li>
-          </ul>
-        </div>
-        <div>
-          <h3>Stay in the loop</h3>
-          <form class="footer-form" action="#" method="post">
-            <label class="sr-only" for="footer-email">Email address</label>
-            <input
-              id="footer-email"
-              name="email"
-              type="email"
-              inputmode="email"
-              placeholder="Enter your email"
-              autocomplete="email"
-              required
-            />
-            <button type="submit">Subscribe</button>
-          </form>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>&copy; {% now "Y" %} PitchPilot Labs. All rights reserved.</p>
-        <div class="footer-social">
-          <a href="#" aria-label="Follow on Instagram">Instagram</a>
-          <a href="#" aria-label="Follow on TikTok">TikTok</a>
-          <a href="#" aria-label="Join on Discord">Discord</a>
-        </div>
-      </div>
-    </footer>
   </div>
 {% endblock %}
