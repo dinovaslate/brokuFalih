@@ -1,4 +1,79 @@
 (function () {
+  const reduceMotionQuery =
+    typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)')
+      : null;
+  const reduceMotion = reduceMotionQuery && reduceMotionQuery.matches;
+  if (reduceMotion || typeof anime === 'undefined') {
+    return;
+  }
+
+  const cards = document.querySelectorAll('.card');
+  const formChildren = document.querySelectorAll('.auth-form > *');
+  const clouds = document.querySelectorAll('.cloud');
+
+  if (!cards.length && !formChildren.length && !clouds.length) {
+    return;
+  }
+
+  if (cards.length) {
+    anime.set(cards, { opacity: 0, translateY: 24 });
+  }
+  if (formChildren.length) {
+    anime.set(formChildren, { opacity: 0, translateY: 16 });
+  }
+  if (clouds.length) {
+    anime.set(clouds, { opacity: 0 });
+  }
+
+  requestAnimationFrame(() => {
+    if (cards.length) {
+      anime({
+        targets: cards,
+        opacity: 1,
+        translateY: 0,
+        easing: 'easeOutQuad',
+        duration: 700,
+        delay: anime.stagger(120),
+      });
+    }
+
+    if (formChildren.length) {
+      anime({
+        targets: formChildren,
+        opacity: 1,
+        translateY: 0,
+        easing: 'easeOutQuad',
+        duration: 520,
+        delay: anime.stagger(70, { start: 360 }),
+      });
+    }
+
+    if (clouds.length) {
+      anime({
+        targets: clouds,
+        opacity: 1,
+        translateY: (element, index) => (index % 2 === 0 ? [-40, 0] : [40, 0]),
+        easing: 'easeOutQuad',
+        duration: 1200,
+        delay: anime.stagger(140),
+      });
+
+      anime({
+        targets: clouds,
+        translateX: (element, index) => (index % 2 === 0 ? [-28, 28] : [28, -28]),
+        translateY: (element, index) => (index % 2 === 0 ? [-12, 12] : [12, -12]),
+        direction: 'alternate',
+        easing: 'easeInOutSine',
+        duration: 9000,
+        loop: true,
+        delay: 1600,
+      });
+    }
+  });
+})();
+
+(function () {
   const forms = document.querySelectorAll('form[data-ajax-form]');
   if (!forms.length) {
     return;
