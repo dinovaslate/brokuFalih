@@ -285,17 +285,19 @@ def ensure_sample_data(*, base_date=None) -> None:
     The admin panel graphs and tables look empty without any data. This helper
     seeds a small set of deterministic demo records so that new environments
     immediately showcase venue activity, rating visuals, and booking analytics.
-    Real data is preserved: bookings are recreated idempotently so existing
-    reservations remain untouched, while venue reviews are added solely for
-    venues lacking feedback. The caller can override ``base_date`` for
-    deterministic testing.
+    Real data is preserved: bookings are only generated when none exist yet,
+    while venue reviews are added solely for venues lacking feedback. The
+    caller can override ``base_date`` for deterministic testing.
     """
 
     with transaction.atomic():
         venues = _get_or_create_venues()
         users = _get_or_create_users()
 
-        _create_bookings(users, venues, base_date=base_date)
+        if not Booking.objects.exists():
+            _create_bookings(users, venues, base_date=base_date)
+
+        _seed_fake_reviews(users)
 
         _seed_fake_reviews(users)
 
