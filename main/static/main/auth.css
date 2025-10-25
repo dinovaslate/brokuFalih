@@ -173,7 +173,8 @@
 
 .card-header p {
   margin: 0;
-  color: var(--muted-text);
+  color: #ffffff;
+  opacity: 0.78;
   line-height: 1.5;
 }
 
@@ -277,7 +278,7 @@
   align-self: flex-end;
   font-size: 0.85rem;
   text-decoration: none;
-  color: var(--primary);
+  color: #ffffff;
 }
 
 .form-errors {
@@ -305,7 +306,8 @@
   flex-direction: column;
   gap: 0.75rem;
   font-size: 0.9rem;
-  color: var(--muted-text);
+  color: #ffffff;
+  opacity: 0.78;
 }
 
 .form-footer.alt {
@@ -339,12 +341,13 @@
 
 .switch-link {
   font-size: 0.9rem;
-  color: var(--muted-text);
+  color: #ffffff;
+  opacity: 0.78;
   margin: 0;
 }
 
 .switch-link a {
-  color: var(--primary);
+  color: #ffffff;
   font-weight: 600;
   text-decoration: none;
 }
@@ -391,7 +394,8 @@
 
 .illustration-caption {
   margin-top: 1.5rem;
-  color: var(--text-color);
+  color: #ffffff;
+  opacity: 0.82;
 }
 
 .illustration-caption h2 {
@@ -480,11 +484,13 @@
 }
 
 .checkbox span {
+  color: #ffffff;
+  opacity: 0.85;
   transition: color 0.2s ease, font-weight 0.2s ease;
 }
 
 .checkbox input:checked + span {
-  color: var(--primary);
+  color: #ffffff;
   font-weight: 600;
 }
 
@@ -496,7 +502,8 @@
 
 .dashboard-card p {
   margin: 0;
-  color: var(--muted-text);
+  color: #ffffff;
+  opacity: 0.78;
   line-height: 1.6;
 }
 
