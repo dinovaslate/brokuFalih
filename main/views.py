@@ -49,6 +49,7 @@ def _serialize_venue(venue: Venue) -> dict[str, object]:
     return {
         "id": venue.id,
         "title": venue.title,
+        "type": venue.type,
         "description": venue.description,
         "facilities": venue.facilities,
         "price": venue.price,

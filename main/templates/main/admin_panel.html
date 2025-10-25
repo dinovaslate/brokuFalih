@@ -46,6 +46,7 @@
                 <tr>
                   <th scope="col">Image</th>
                   <th scope="col">Title</th>
+                  <th scope="col">Type</th>
                   <th scope="col">Location</th>
                   <th scope="col">Facilities</th>
                   <th scope="col">Price</th>
@@ -99,6 +100,20 @@
             <label>
               <span>Title</span>
               <input type="text" name="title" required maxlength="255" />
+            </label>
+            <label>
+              <span>Type</span>
+              <select name="type" required>
+                <option value="Tennis">Tennis</option>
+                <option value="Badminton">Badminton</option>
+                <option value="Basket">Basket</option>
+                <option value="Sepak Bola">Sepak Bola</option>
+                <option value="Mini Soccer">Mini Soccer</option>
+                <option value="Futsal">Futsal</option>
+                <option value="Billiard">Billiard</option>
+                <option value="Tenis Meja">Tenis Meja</option>
+                <option value="Volly Ball">Volly Ball</option>
+              </select>
             </label>
             <label>
               <span>Description</span>

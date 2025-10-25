@@ -506,6 +506,10 @@
       titleCell.textContent = venue.title;
       row.appendChild(titleCell);
 
+      const typeCell = document.createElement('td');
+      typeCell.textContent = venue.type || '—';
+      row.appendChild(typeCell);
+
       const locationCell = document.createElement('td');
       locationCell.textContent = venue.location;
       row.appendChild(locationCell);
@@ -721,6 +725,11 @@
         const venue = state.venues.find((item) => Number(item.id) === Number(recordId));
         if (venue) {
           entityForm.querySelector('input[name="title"]').value = venue.title;
+          const typeField = entityForm.querySelector('select[name="type"]');
+          if (typeField) {
+            const fallback = typeField.options.length ? typeField.options[0].value : '';
+            typeField.value = venue.type || fallback;
+          }
           entityForm.querySelector('textarea[name="description"]').value = venue.description || '';
           entityForm.querySelector('input[name="facilities"]').value = (venue.facilities || []).join(', ');
           entityForm.querySelector('input[name="price"]').value = venue.price;
