@@ -4,6 +4,18 @@
     sans-serif;
   --sidebar-width: 260px;
   --bg-muted: #f5f7fb;
+  --bg-gradient: radial-gradient(
+      120% 120% at 0% 0%,
+      rgba(99, 102, 241, 0.26) 0%,
+      transparent 45%
+    ),
+    radial-gradient(120% 120% at 100% 0%, rgba(147, 197, 253, 0.28) 0%, transparent 52%),
+    radial-gradient(140% 140% at 20% 85%, rgba(16, 185, 129, 0.24) 0%, transparent 62%),
+    #f2f5fb;
+  --admin-mesh-color-1: #6d86ff;
+  --admin-mesh-color-2: #f08ac0;
+  --admin-mesh-color-3: #7dd3fc;
+  --admin-mesh-color-4: #a7f3d0;
   --border-color: rgba(15, 23, 42, 0.08);
   --text-primary: #0f172a;
   --text-secondary: #475569;
@@ -21,9 +33,125 @@
 
 body.admin-body {
   margin: 0;
-  background: var(--bg-muted);
+  background: var(--bg-gradient);
   color: var(--text-primary);
   min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  isolation: isolate;
+}
+
+.admin-body > :not(.admin-gradient-mesh) {
+  position: relative;
+  z-index: 1;
+}
+
+.admin-gradient-mesh[aria-hidden='true'] {
+  display: block !important;
+}
+
+.admin-gradient-mesh {
+  position: fixed;
+  inset: -10% -15%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+  opacity: 0.95;
+  filter: saturate(1.2) contrast(1.02);
+}
+
+.admin-gradient-mesh .mesh {
+  position: absolute;
+  width: clamp(360px, 32vw, 520px);
+  height: clamp(360px, 32vw, 520px);
+  border-radius: 50%;
+  filter: blur(72px);
+  opacity: 0.72;
+  mix-blend-mode: screen;
+  transform: translate3d(0, 0, 0);
+  animation: meshDrift var(--duration) ease-in-out infinite;
+}
+
+.admin-gradient-mesh .mesh::before {
+  content: '';
+  position: absolute;
+  inset: -14%;
+  border-radius: inherit;
+  background: radial-gradient(circle at 35% 35%, var(--mesh-color) 0%, transparent 60%);
+}
+
+.admin-gradient-mesh .mesh-bounce {
+  animation-name: meshBounce;
+  animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1);
+}
+
+.admin-gradient-mesh .mesh-1 {
+  top: -12%;
+  left: -6%;
+  --mesh-color: var(--admin-mesh-color-1);
+  --duration: 26s;
+}
+
+.admin-gradient-mesh .mesh-2 {
+  top: 42%;
+  left: -18%;
+  --mesh-color: var(--admin-mesh-color-2);
+  --duration: 30s;
+  animation-delay: -8s;
+}
+
+.admin-gradient-mesh .mesh-3 {
+  bottom: -18%;
+  right: -10%;
+  --mesh-color: var(--admin-mesh-color-3);
+  --duration: 32s;
+  animation-delay: -12s;
+}
+
+.admin-gradient-mesh .mesh-4 {
+  top: 12%;
+  right: 18%;
+  --mesh-color: var(--admin-mesh-color-4);
+  --duration: 28s;
+  animation-delay: -16s;
+}
+
+@keyframes meshDrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  40% {
+    transform: translate3d(24px, -28px, 0) scale(1.03);
+  }
+  70% {
+    transform: translate3d(-28px, 24px, 0) scale(0.99);
+  }
+}
+
+@keyframes meshBounce {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  20% {
+    transform: translate3d(30px, -40px, 0) scale(1.05);
+  }
+  45% {
+    transform: translate3d(-18px, -12px, 0) scale(0.98);
+  }
+  70% {
+    transform: translate3d(-32px, 28px, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(22px, 34px, 0) scale(1.01);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-gradient-mesh .mesh {
+    animation: none;
+    transform: none;
+  }
 }
 
 .admin-layout {

@@ -2,7 +2,12 @@
   color-scheme: light only;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  --bg-gradient: radial-gradient(circle at 10% 20%, #e8f0ff 0%, #f8fbff 45%, #e7f3ff 100%);
+  --bg-gradient: radial-gradient(
+    130% 130% at 8% 20%,
+    rgba(105, 141, 255, 0.32) 0%,
+    #f8fbff 45%,
+    #e4f0ff 100%
+  );
   --mesh-color-1: #6b8bff;
   --mesh-color-2: #ff8cb0;
   --mesh-color-3: #7cf2d3;
@@ -37,14 +42,15 @@
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
+  opacity: 0.95;
 }
 
 .gradient-mesh .mesh {
   position: absolute;
   width: clamp(420px, 40vw, 580px);
   height: clamp(420px, 40vw, 580px);
-  filter: blur(60px);
-  opacity: 0.65;
+  filter: blur(52px);
+  opacity: 0.78;
   border-radius: 50%;
   mix-blend-mode: screen;
   transform: translate3d(0, 0, 0);
@@ -56,7 +62,12 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: radial-gradient(circle at 30% 30%, var(--mesh-color, #fff) 0%, transparent 68%);
+  background: radial-gradient(circle at 30% 30%, var(--mesh-color, #fff) 0%, transparent 58%);
+}
+
+.gradient-mesh .mesh-bounce {
+  animation-name: meshBounce;
+  animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1);
 }
 
 .mesh-1 {
@@ -100,6 +111,24 @@
   }
   70% {
     transform: translate3d(-24px, 20px, 0) scale(0.98);
+  }
+}
+
+@keyframes meshBounce {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  22% {
+    transform: translate3d(26px, -32px, 0) scale(1.05);
+  }
+  45% {
+    transform: translate3d(-16px, -10px, 0) scale(0.97);
+  }
+  72% {
+    transform: translate3d(-28px, 28px, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(18px, 32px, 0) scale(1.01);
   }
 }
 
@@ -158,6 +187,13 @@
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-mesh .mesh {
+    animation: none;
+    transform: none;
+  }
 }
 
 .form-control {
