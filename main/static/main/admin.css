@@ -1,17 +1,11 @@
 :root {
   color-scheme: dark;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --sidebar-width: 260px;
   --bg-muted: #050816;
-  --bg-gradient: radial-gradient(
-      circle at 6% -10%,
-      rgba(99, 102, 241, 0.18),
-      transparent 70%
-    ),
+  --bg-gradient: radial-gradient(circle at 6% -10%, rgba(99, 102, 241, 0.18), transparent 70%),
     radial-gradient(circle at 82% 0%, rgba(147, 197, 253, 0.2), transparent 78%),
-    radial-gradient(circle at 18% 78%, rgba(16, 185, 129, 0.18), transparent 90%),
-    #020617;
+    radial-gradient(circle at 18% 78%, rgba(16, 185, 129, 0.18), transparent 90%), #020617;
   --admin-mesh-color-1: #7c8cff;
   --admin-mesh-color-2: #f6a3c7;
   --admin-mesh-color-3: #8be4ff;
@@ -32,8 +26,6 @@
 * {
   box-sizing: border-box;
 }
-
-
 
 body.admin-body {
   margin: 0;
@@ -366,7 +358,7 @@ body.admin-body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-.chart-card:first-of-type{
+.chart-card:first-of-type {
   border-right: 2px dashed grey;
 }
 .chart-card {
@@ -543,7 +535,7 @@ body.admin-body {
   color: var(--accent);
 }
 
-.table-actions button[data-action="delete"] {
+.table-actions button[data-action='delete'] {
   background: rgba(220, 38, 38, 0.45);
   color: var(--danger);
 }
@@ -683,85 +675,148 @@ body.admin-body {
   display: block;
 }
 
-
 .admin-body.modal-open {
   overflow: hidden;
 }
-th{
+th {
   cursor: pointer;
 }
 .modal-backdrop {
   position: fixed !important;
   inset: 0;
-  padding: 32px 16px;
+  padding: clamp(20px, 5vw, 56px) clamp(12px, 4vw, 32px);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(2, 6, 23, 0.6);
-  backdrop-filter: blur(12px);
-  z-index: 100 !important;
+  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.25), transparent 55%),
+    radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.18), transparent 60%), rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(18px) saturate(120%);
+  z-index: 100;
 }
 
 .modal {
-  background: var(--surface-elevated);
-  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(15, 23, 42, 0.88));
+  border-radius: 26px;
   position: relative;
-  width: min(560px, calc(100% - 48px));
-  box-shadow: var(--shadow-lg);
-  max-height: min(90vh, calc(100vh - 64px));
+  width: min(600px, calc(100% - 48px));
+  box-shadow: 0 32px 80px -32px rgba(15, 23, 42, 0.9), 0 18px 36px -18px rgba(59, 130, 246, 0.35);
+  max-height: min(92vh, calc(100vh - 56px));
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.22);
   z-index: 1;
+  isolation: isolate;
+}
+
+.modal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(125deg, rgba(59, 130, 246, 0.22), rgba(129, 140, 248, 0.18), rgba(20, 184, 166, 0.2));
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.modal::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 4px;
+  background: linear-gradient(120deg, rgba(59, 130, 246, 0.85), rgba(129, 140, 248, 0.85), rgba(16, 185, 129, 0.9));
 }
 
 .modal-header,
 .modal-footer {
-  padding: 20px 28px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.modal-footer {
-  border-bottom: 0;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.modal-body {
-  padding: 4px 28px 28px;
-  overflow-y: auto;
+  padding: 24px clamp(24px, 5vw, 36px);
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.12) 0%, rgba(15, 23, 42, 0.05) 100%);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.modal-footer {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  border-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.1) 0%, rgba(15, 23, 42, 0.35) 100%);
+}
+
+.modal-body {
+  padding: 8px clamp(24px, 5vw, 36px) clamp(28px, 6vw, 40px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.75) 100%);
+}
+
+.modal-body form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
+  letter-spacing: 0.01em;
 }
 
 .alert {
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  background: rgba(248, 113, 113, 0.12);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.14), rgba(248, 113, 113, 0.08));
   color: var(--danger);
-  border: 1px solid rgba(248, 113, 113, 0.35);
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.08);
 }
 
 .form-grid {
   display: grid;
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px 20px;
+  align-items: start;
 }
 
 .form-grid label {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   font-weight: 500;
+}
+
+.form-grid label:not(.checkbox) {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-grid label:not(.checkbox):focus-within {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow: 0 18px 36px -28px rgba(59, 130, 246, 0.55);
+}
+
+.form-grid label span {
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.78);
 }
 
 .form-grid input[type='text'],
@@ -771,15 +826,57 @@ th{
 .form-grid select,
 .form-grid textarea {
   font: inherit;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  background: var(--input-bg);
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.82);
   color: var(--text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.form-grid input[type='text']::placeholder,
+.form-grid input[type='number']::placeholder,
+.form-grid input[type='date']::placeholder,
+.form-grid textarea::placeholder {
+  color: rgba(148, 163, 184, 0.58);
+}
+
+.form-grid input[type='file']::file-selector-button {
+  padding: 8px 14px;
+  margin-right: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.form-grid input[type='file']::file-selector-button:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.55);
+}
+
+.form-grid input[type='text']:focus,
+.form-grid input[type='number']:focus,
+.form-grid input[type='date']:focus,
+.form-grid input[type='file']:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  outline: none;
+  border-color: rgba(129, 140, 248, 0.65);
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.35);
+  background: rgba(15, 23, 42, 0.95);
 }
 
 .form-grid textarea {
   resize: vertical;
+  min-height: 120px;
+}
+
+.form-grid .full-width {
+  grid-column: 1 / -1;
 }
 
 .checkbox {
@@ -790,8 +887,7 @@ th{
   border-radius: 999px;
   border: 1px solid rgba(234, 88, 12, 0.2);
   background: rgba(234, 179, 8, 0.12);
-  transition: background 0.2s ease, border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   width: 100%;
   font-weight: 500;
   cursor: pointer;
@@ -863,11 +959,37 @@ th{
   gap: 16px;
 }
 
+@media (max-width: 640px) {
+  .modal {
+    width: calc(100% - 24px);
+    border-radius: 22px;
+  }
+
+  .modal-header,
+  .modal-footer {
+    padding: 20px;
+  }
+
+  .modal-body {
+    padding: 12px 20px 24px;
+  }
+}
+
+@media (max-width: 520px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-footer {
+    justify-content: center;
+  }
+}
+
 .data-section.is-hidden,
 .form-grid.is-hidden {
   display: none;
 }
-[aria-hidden="true"] {
+[aria-hidden='true'] {
   /* Styles to apply to any element with an aria-label */
   display: none !important;
 }
