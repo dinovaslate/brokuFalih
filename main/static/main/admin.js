@@ -124,6 +124,10 @@
     modalMode: 'create',
     editingId: null,
     hasUsers: app.dataset.hasUsers === 'true',
+    sort: {
+      venues: { key: null, direction: 'asc' },
+      bookings: { key: null, direction: 'asc' },
+    },
     pagination: {
       venues: {
         page: 1,
@@ -248,6 +252,14 @@
     venues: document.querySelector('[data-table-footer="venues"]'),
     bookings: document.querySelector('[data-table-footer="bookings"]'),
   };
+  const sortableHeaders = {
+    venues: Array.from(
+      app.querySelectorAll('[data-sort-section="venues"][data-sort-key]'),
+    ),
+    bookings: Array.from(
+      app.querySelectorAll('[data-sort-section="bookings"][data-sort-key]'),
+    ),
+  };
   const chartElements = {
     sales: {
       canvas: document.getElementById('venue-sales-chart'),
@@ -330,6 +342,9 @@
     }
     modalBackdrop.hidden = false;
     modalBackdrop.setAttribute('aria-hidden', 'false');
+    if (document.body) {
+      document.body.classList.add('modal-open');
+    }
   }
 
   function hideModalBackdrop() {
@@ -338,6 +353,9 @@
     }
     modalBackdrop.hidden = true;
     modalBackdrop.setAttribute('aria-hidden', 'true');
+    if (document.body) {
+      document.body.classList.remove('modal-open');
+    }
   }
 
   function animateActiveNavButton(button) {
@@ -609,6 +627,273 @@
     });
   }
 
+  function getVenueTitleValue(venue) {
+    return venue && typeof venue.title === 'string' ? venue.title : '';
+  }
+
+  function getVenueFacilitiesText(venue) {
+    if (!venue || !Array.isArray(venue.facilities) || !venue.facilities.length) {
+      return '—';
+    }
+    return venue.facilities.join(', ');
+  }
+
+  function getVenueFacilitiesValue(venue) {
+    if (!venue || !Array.isArray(venue.facilities) || !venue.facilities.length) {
+      return '';
+    }
+    return venue.facilities.join(', ');
+  }
+
+  function getVenueLocationValue(venue) {
+    return venue && typeof venue.location === 'string' ? venue.location : '';
+  }
+
+  function getBookingGuestLabel(booking) {
+    if (!booking) {
+      return '—';
+    }
+    if (booking.user) {
+      if (booking.user.full_name) {
+        const username = booking.user.username ? ` (${booking.user.username})` : '';
+        return `${booking.user.full_name}${username}`;
+      }
+      if (booking.user.username) {
+        return booking.user.username;
+      }
+    }
+    return booking.username || '—';
+  }
+
+  function getBookingGuestValue(booking) {
+    const label = getBookingGuestLabel(booking);
+    return label === '—' ? '' : label;
+  }
+
+  function getBookingVenueValue(booking) {
+    if (booking && booking.venue && booking.venue.title) {
+      return booking.venue.title;
+    }
+    return '';
+  }
+
+  function getBookingVenueLabel(booking) {
+    const value = getBookingVenueValue(booking);
+    return value || '—';
+  }
+
+  function getBookingDateLabel(booking) {
+    const startRaw = booking && booking.start_date ? booking.start_date : '';
+    const endRaw = booking && booking.end_date ? booking.end_date : '';
+    const startFormatted = startRaw ? formatDate(startRaw) : '';
+    const endFormatted = endRaw ? formatDate(endRaw) : '';
+    const startLabel = startFormatted || startRaw || '—';
+    const endLabel = endFormatted || endRaw || '—';
+    return `${startLabel} – ${endLabel}`;
+  }
+
+  function getBookingPaidLabel(booking) {
+    return booking && booking.has_been_paid ? 'Paid' : 'Pending';
+  }
+
+  function getBookingNotesValue(booking) {
+    return booking && booking.notes ? booking.notes : '';
+  }
+
+  function getBookingNotesLabel(booking) {
+    const value = getBookingNotesValue(booking);
+    return value || '—';
+  }
+
+  function compareVenueRatings(a, b) {
+    const averageA = Number(a && a.average_rating);
+    const averageB = Number(b && b.average_rating);
+    const safeAverageA = Number.isFinite(averageA) ? averageA : Number.NEGATIVE_INFINITY;
+    const safeAverageB = Number.isFinite(averageB) ? averageB : Number.NEGATIVE_INFINITY;
+    if (safeAverageA !== safeAverageB) {
+      return safeAverageA - safeAverageB;
+    }
+    const countA = Number(a && a.rating_count);
+    const countB = Number(b && b.rating_count);
+    const safeCountA = Number.isFinite(countA) ? countA : 0;
+    const safeCountB = Number.isFinite(countB) ? countB : 0;
+    if (safeCountA !== safeCountB) {
+      return safeCountA - safeCountB;
+    }
+    return 0;
+  }
+
+  function compareBookingDates(a, b) {
+    const startA = Date.parse(a && a.start_date);
+    const startB = Date.parse(b && b.start_date);
+    const safeStartA = Number.isFinite(startA) ? startA : Number.NEGATIVE_INFINITY;
+    const safeStartB = Number.isFinite(startB) ? startB : Number.NEGATIVE_INFINITY;
+    if (safeStartA !== safeStartB) {
+      return safeStartA - safeStartB;
+    }
+    const endA = Date.parse(a && a.end_date);
+    const endB = Date.parse(b && b.end_date);
+    const safeEndA = Number.isFinite(endA) ? endA : Number.NEGATIVE_INFINITY;
+    const safeEndB = Number.isFinite(endB) ? endB : Number.NEGATIVE_INFINITY;
+    if (safeEndA !== safeEndB) {
+      return safeEndA - safeEndB;
+    }
+    return 0;
+  }
+
+  const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+
+  const tableSorters = {
+    venues: {
+      image: { type: 'number', getValue: (item) => (item && item.image_url ? 1 : 0) },
+      title: { type: 'string', getValue: getVenueTitleValue },
+      type: { type: 'string', getValue: (item) => (item && item.type ? item.type : '') },
+      rating: { compare: compareVenueRatings },
+      location: { type: 'string', getValue: getVenueLocationValue },
+      facilities: { type: 'string', getValue: getVenueFacilitiesValue },
+      price: { type: 'number', getValue: (item) => Number(item && item.price) },
+      actions: { type: 'number', getValue: (item) => Number(item && item.id) },
+    },
+    bookings: {
+      guest: { type: 'string', getValue: getBookingGuestValue },
+      venue: { type: 'string', getValue: getBookingVenueValue },
+      dates: { compare: compareBookingDates },
+      paid: { type: 'number', getValue: (item) => (item && item.has_been_paid ? 1 : 0) },
+      notes: { type: 'string', getValue: getBookingNotesValue },
+      actions: { type: 'number', getValue: (item) => Number(item && item.id) },
+    },
+  };
+
+  function compareRecords(a, b, config) {
+    if (!config) {
+      return 0;
+    }
+    if (typeof config.compare === 'function') {
+      const result = config.compare(a, b);
+      if (result !== 0) {
+        return result;
+      }
+      const idA = Number(a && a.id);
+      const idB = Number(b && b.id);
+      const safeIdA = Number.isFinite(idA) ? idA : 0;
+      const safeIdB = Number.isFinite(idB) ? idB : 0;
+      return safeIdA - safeIdB;
+    }
+    const type = config.type || 'string';
+    const getter = typeof config.getValue === 'function' ? config.getValue : () => undefined;
+    const valueA = getter(a);
+    const valueB = getter(b);
+    let result = 0;
+    if (type === 'number') {
+      const numA = Number(valueA);
+      const numB = Number(valueB);
+      const safeA = Number.isFinite(numA) ? numA : Number.NEGATIVE_INFINITY;
+      const safeB = Number.isFinite(numB) ? numB : Number.NEGATIVE_INFINITY;
+      result = safeA - safeB;
+    } else if (type === 'date') {
+      const timeA = Date.parse(valueA);
+      const timeB = Date.parse(valueB);
+      const safeA = Number.isFinite(timeA) ? timeA : Number.NEGATIVE_INFINITY;
+      const safeB = Number.isFinite(timeB) ? timeB : Number.NEGATIVE_INFINITY;
+      result = safeA - safeB;
+    } else {
+      const stringA = valueA === undefined || valueA === null ? '' : String(valueA);
+      const stringB = valueB === undefined || valueB === null ? '' : String(valueB);
+      result = collator.compare(stringA, stringB);
+    }
+    if (result !== 0) {
+      return result;
+    }
+    const idA = Number(a && a.id);
+    const idB = Number(b && b.id);
+    const fallbackA = Number.isFinite(idA) ? idA : 0;
+    const fallbackB = Number.isFinite(idB) ? idB : 0;
+    return fallbackA - fallbackB;
+  }
+
+  function getSortedRecords(section) {
+    const records = Array.isArray(state[section]) ? state[section].slice() : [];
+    const sortState = state.sort && state.sort[section];
+    if (!sortState || !sortState.key) {
+      return records;
+    }
+    const config = tableSorters[section] && tableSorters[section][sortState.key];
+    if (!config) {
+      return records;
+    }
+    records.sort((recordA, recordB) => {
+      const comparison = compareRecords(recordA, recordB, config);
+      if (comparison === 0) {
+        return 0;
+      }
+      return sortState.direction === 'desc' ? -comparison : comparison;
+    });
+    return records;
+  }
+
+  function updateSortIndicators(section) {
+    const headers = sortableHeaders[section] || [];
+    const sortState = state.sort && state.sort[section];
+    headers.forEach((header) => {
+      const key = header.dataset.sortKey;
+      const config = tableSorters[section] && tableSorters[section][key];
+      if (!config) {
+        header.classList.remove('is-sorted');
+        header.setAttribute('aria-sort', 'none');
+        return;
+      }
+      const isActive = sortState && sortState.key === key;
+      header.classList.toggle('is-sorted', Boolean(isActive));
+      if (isActive) {
+        const direction = sortState.direction === 'desc' ? 'descending' : 'ascending';
+        header.setAttribute('aria-sort', direction);
+      } else {
+        header.setAttribute('aria-sort', 'none');
+      }
+    });
+  }
+
+  function handleSortToggle(section, key) {
+    const config = tableSorters[section] && tableSorters[section][key];
+    if (!config) {
+      return;
+    }
+    const current = state.sort && state.sort[section] ? state.sort[section] : { key: null, direction: 'asc' };
+    let nextDirection = 'asc';
+    if (current.key === key && current.direction === 'asc') {
+      nextDirection = 'desc';
+    } else if (current.key === key && current.direction === 'desc') {
+      nextDirection = 'asc';
+    }
+    state.sort[section] = { key, direction: nextDirection };
+    if (section === 'venues') {
+      renderVenues();
+    } else if (section === 'bookings') {
+      renderBookings();
+    }
+  }
+
+  function registerSorting() {
+    Object.entries(sortableHeaders).forEach(([section, headers]) => {
+      headers.forEach((header) => {
+        const key = header.dataset.sortKey;
+        if (!key) {
+          return;
+        }
+        header.addEventListener('click', () => {
+          handleSortToggle(section, key);
+        });
+        header.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleSortToggle(section, key);
+          }
+        });
+      });
+      updateSortIndicators(section);
+    });
+  }
+
   function getPopularityColors(count) {
     const palette = [
       '#ea580c',
@@ -677,6 +962,7 @@
         },
         ticks: {
           maxTicksLimit: 6,
+          color: '#ffffff',
           callback(value) {
             return formatCurrency(value, { compact: true });
           },
@@ -734,6 +1020,7 @@
                 maxRotation: 0,
                 autoSkip: true,
                 maxTicksLimit: 6,
+                color: '#ffffff',
                 callback(value, index) {
                   const label = dataset.labels[index];
                   return formatDate(label);
@@ -745,6 +1032,11 @@
           plugins: {
             legend: { display: false },
             tooltip: {
+              backgroundColor: 'rgba(2, 6, 23, 0.88)',
+              borderColor: 'rgba(255, 255, 255, 0.14)',
+              borderWidth: 1,
+              titleColor: '#ffffff',
+              bodyColor: '#ffffff',
               callbacks: {
                 title(context) {
                   if (!context.length) {
@@ -797,9 +1089,15 @@
               usePointStyle: true,
               pointStyle: 'circle',
               padding: 16,
+              color: '#ffffff',
             },
           },
           tooltip: {
+            backgroundColor: 'rgba(2, 6, 23, 0.88)',
+            borderColor: 'rgba(255, 255, 255, 0.14)',
+            borderWidth: 1,
+            titleColor: '#ffffff',
+            bodyColor: '#ffffff',
             callbacks: {
               label(context) {
                 const value = Number.isFinite(context.parsed) ? context.parsed : 0;
@@ -1403,7 +1701,8 @@
   function renderVenues() {
     venuesTableBody.innerHTML = '';
     const fragment = document.createDocumentFragment();
-    state.venues.forEach((venue) => {
+    const records = getSortedRecords('venues');
+    records.forEach((venue) => {
       const row = document.createElement('tr');
       row.dataset.recordId = venue.id;
 
@@ -1422,7 +1721,7 @@
       row.appendChild(imageCell);
 
       const titleCell = document.createElement('td');
-      titleCell.textContent = venue.title;
+      titleCell.textContent = getVenueTitleValue(venue) || '—';
       row.appendChild(titleCell);
 
       const typeCell = document.createElement('td');
@@ -1438,13 +1737,12 @@
       row.appendChild(ratingCell);
 
       const locationCell = document.createElement('td');
-      locationCell.textContent = venue.location;
+      const locationValue = getVenueLocationValue(venue);
+      locationCell.textContent = locationValue || '—';
       row.appendChild(locationCell);
 
       const facilitiesCell = document.createElement('td');
-      facilitiesCell.textContent = venue.facilities && venue.facilities.length
-        ? venue.facilities.join(', ')
-        : '—';
+      facilitiesCell.textContent = getVenueFacilitiesText(venue);
       row.appendChild(facilitiesCell);
 
       const priceCell = document.createElement('td');
@@ -1481,39 +1779,36 @@
     renderPagination('venues');
     updateTableFooter('venues');
     animateTableRows(venuesTableBody);
+    updateSortIndicators('venues');
   }
 
   function renderBookings() {
     bookingsTableBody.innerHTML = '';
     const fragment = document.createDocumentFragment();
+    const records = getSortedRecords('bookings');
 
-    state.bookings.forEach((booking) => {
+    records.forEach((booking) => {
       const row = document.createElement('tr');
       row.dataset.recordId = booking.id;
 
       const guestCell = document.createElement('td');
-      const guestLabel = booking.user
-        ? booking.user.full_name
-          ? `${booking.user.full_name} (${booking.user.username})`
-          : booking.user.username
-        : booking.username || '—';
-      guestCell.textContent = guestLabel;
+      guestCell.textContent = getBookingGuestLabel(booking);
       row.appendChild(guestCell);
 
       const venueCell = document.createElement('td');
-      venueCell.textContent = booking.venue ? booking.venue.title : '—';
+      venueCell.textContent = getBookingVenueLabel(booking);
       row.appendChild(venueCell);
 
       const datesCell = document.createElement('td');
-      datesCell.textContent = `${formatDate(booking.start_date)} – ${formatDate(booking.end_date)}`;
+      datesCell.textContent = getBookingDateLabel(booking);
       row.appendChild(datesCell);
 
       const paidCell = document.createElement('td');
-      paidCell.textContent = booking.has_been_paid ? 'Paid' : 'Pending';
+      paidCell.textContent = getBookingPaidLabel(booking);
       row.appendChild(paidCell);
 
       const notesCell = document.createElement('td');
-      notesCell.textContent = booking.notes || '—';
+      notesCell.textContent = getBookingNotesLabel(booking);
       row.appendChild(notesCell);
 
       const actionsCell = document.createElement('td');
@@ -1546,6 +1841,7 @@
     renderPagination('bookings');
     updateTableFooter('bookings');
     animateTableRows(bookingsTableBody);
+    updateSortIndicators('bookings');
   }
 
   function updateHeader(section) {
@@ -2102,11 +2398,13 @@
     });
   });
 
-  modalBackdrop.addEventListener('click', (event) => {
-    if (event.target === modalBackdrop) {
-      closeModal();
-    }
-  });
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener('click', (event) => {
+      if (event.target === modalBackdrop) {
+        closeModal();
+      }
+    });
+  }
 
   venuesTableBody.addEventListener('click', (event) => {
     const button = event.target.closest('button');
@@ -2145,6 +2443,7 @@
     });
   });
 
+  registerSorting();
   initializeCharts();
   renderVenues();
   renderBookings();
