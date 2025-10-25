@@ -7,10 +7,10 @@
   --bg-gradient: radial-gradient(
       circle at 5% 0%,
       rgba(99, 102, 241, 0.18),
-      transparent 45%
+      transparent 75%
     ),
-    radial-gradient(circle at 85% 10%, rgba(147, 197, 253, 0.22), transparent 55%),
-    radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.2), transparent 60%),
+    radial-gradient(circle at 85% 10%, rgba(147, 197, 253, 0.22), transparent 85%),
+    radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.2), transparent 90%),
     #f5f7fb;
   --admin-mesh-color-1: #6d86ff;
   --admin-mesh-color-2: #f08ac0;

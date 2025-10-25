@@ -377,9 +377,6 @@ def ensure_sample_data(*, base_date=None) -> None:
     caller can override ``base_date`` for deterministic testing.
     """
 
-    if Booking.objects.exists():
-        return
-
     with transaction.atomic():
         venues = _get_or_create_venues()
         users = _get_or_create_users()
