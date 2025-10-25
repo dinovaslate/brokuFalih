@@ -3,24 +3,24 @@
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
   --sidebar-width: 260px;
-  --bg-muted: #fff6f0;
+  --bg-muted: #f5f7fb;
   --bg-gradient: radial-gradient(
-      130% 130% at 0% 16%,
-      rgba(255, 154, 118, 0.32) 0%,
-      transparent 48%
+      circle at 5% 0%,
+      rgba(99, 102, 241, 0.18),
+      transparent 75%
     ),
-    radial-gradient(120% 140% at 100% 8%, rgba(56, 189, 248, 0.26) 0%, transparent 54%),
-    radial-gradient(160% 120% at 50% 100%, rgba(244, 114, 182, 0.25) 0%, transparent 62%),
-    #fdf4ff;
-  --admin-mesh-color-1: #ff8a65;
-  --admin-mesh-color-2: #fcd34d;
-  --admin-mesh-color-3: #38d4c3;
-  --admin-mesh-color-4: #c084fc;
-  --border-color: rgba(120, 53, 15, 0.16);
-  --text-primary: #3b0b4f;
-  --text-secondary: #8f4d83;
-  --accent: #ea580c;
-  --accent-hover: #c2410c;
+    radial-gradient(circle at 85% 10%, rgba(147, 197, 253, 0.22), transparent 85%),
+    radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.2), transparent 90%),
+    #f5f7fb;
+  --admin-mesh-color-1: #6d86ff;
+  --admin-mesh-color-2: #f08ac0;
+  --admin-mesh-color-3: #7dd3fc;
+  --admin-mesh-color-4: #a7f3d0;
+  --border-color: rgba(15, 23, 42, 0.08);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
   --danger: #dc2626;
   --shadow-lg: 0 24px 48px -24px rgba(120, 53, 15, 0.45);
 }
@@ -56,8 +56,8 @@ body.admin-body {
   pointer-events: none;
   overflow: hidden;
   z-index: 0;
-  opacity: 0.92;
-  filter: saturate(1.08) contrast(1.06);
+  opacity: 0.85;
+  filter: saturate(1.1);
 }
 
 .admin-gradient-mesh .mesh {
@@ -65,9 +65,9 @@ body.admin-body {
   width: clamp(360px, 32vw, 520px);
   height: clamp(360px, 32vw, 520px);
   border-radius: 50%;
-  filter: blur(68px);
-  opacity: 0.78;
-  mix-blend-mode: lighten;
+  filter: blur(90px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
   transform: translate3d(0, 0, 0);
   animation: meshDrift var(--duration) ease-in-out infinite;
 }
@@ -75,9 +75,9 @@ body.admin-body {
 .admin-gradient-mesh .mesh::before {
   content: '';
   position: absolute;
-  inset: -14%;
+  inset: -12%;
   border-radius: inherit;
-  background: radial-gradient(circle at 35% 35%, var(--mesh-color) 0%, transparent 60%);
+  background: radial-gradient(circle at 35% 35%, var(--mesh-color) 0%, transparent 68%);
 }
 
 .admin-gradient-mesh .mesh-bounce {
