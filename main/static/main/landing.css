@@ -1015,8 +1015,9 @@ body.landing-body {
 .page-fragment {
   opacity: 0;
   transform: translate3d(0, 48px, 0);
-  transition: transform var(--transition-long), opacity var(--transition-long);
-  will-change: opacity, transform;
+  transition: transform var(--transition-long), opacity var(--transition-long),
+    filter var(--transition-long);
+  will-change: opacity, transform, filter;
 }
 
 .page-fragment.is-active {
@@ -1030,8 +1031,9 @@ body.landing-body {
 }
 
 .page-fragment--slide.is-transitioning {
-  transform: translate3d(6%, 0, 0);
+  transform: translate3d(88px, 0, 0);
   opacity: 0;
+  filter: blur(6px);
 }
 
 .page-fragment--fade.is-transitioning {
@@ -1577,6 +1579,15 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
   position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
+  z-index: 1;
+}
+
+.venue-card__media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 10, 26, 0) 55%, rgba(6, 10, 26, 0.6) 100%);
+  pointer-events: none;
 }
 
 .venue-card__media img {
