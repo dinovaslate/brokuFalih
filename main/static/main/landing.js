@@ -585,6 +585,151 @@ document.addEventListener("DOMContentLoaded", () => {
     const commentSaveButton = commentEditModal?.querySelector("[data-comment-save]");
     const ratingDisplay = page.querySelector("[data-rating-display]");
     const ratingCountEl = page.querySelector("[data-rating-count]");
+    const starRatingControllers = new Map();
+
+    const setupStarRatingControl = (widget) => {
+      if (!widget || starRatingControllers.has(widget)) {
+        return starRatingControllers.get(widget) || null;
+      }
+
+      const input = widget.querySelector("[data-star-input]");
+      const label = widget.querySelector("[data-star-label]");
+      const buttons = Array.from(widget.querySelectorAll("[data-star-button]"));
+      if (!input || !buttons.length) {
+        return null;
+      }
+
+      const totalStars = buttons.length;
+      const defaultValue = (() => {
+        const raw = widget.dataset.defaultValue || input.defaultValue || input.value;
+        const numeric = Number(raw);
+        return Number.isFinite(numeric) ? Math.min(Math.max(Math.round(numeric), 1), totalStars) : 1;
+      })();
+
+      let currentValue = (() => {
+        const raw = input.value || widget.dataset.currentValue;
+        const numeric = Number(raw);
+        if (Number.isFinite(numeric)) {
+          return Math.min(Math.max(Math.round(numeric), 1), totalStars);
+        }
+        return defaultValue;
+      })();
+
+      const applyActiveState = (value) => {
+        buttons.forEach((button, index) => {
+          const isActive = index < value;
+          button.classList.toggle("is-active", isActive);
+        });
+        widget.dataset.currentValue = String(value);
+      };
+
+      const updateLabel = (value) => {
+        if (!label) {
+          return;
+        }
+        label.textContent = `${value} / ${totalStars}`;
+      };
+
+      const setValue = (value) => {
+        const clamped = Math.min(Math.max(Math.round(value), 1), totalStars);
+        currentValue = clamped;
+        input.value = String(clamped);
+        applyActiveState(clamped);
+        updateLabel(clamped);
+        buttons.forEach((button, index) => {
+          button.setAttribute("aria-checked", index < clamped ? "true" : "false");
+          button.tabIndex = index + 1 === clamped ? 0 : -1;
+        });
+        return clamped;
+      };
+
+      buttons.forEach((button, index) => {
+        const value = index + 1;
+        button.type = "button";
+        button.setAttribute("role", "radio");
+        button.setAttribute("aria-checked", "false");
+        button.addEventListener("click", () => {
+          setValue(value);
+        });
+        button.addEventListener("mouseenter", () => applyActiveState(value));
+        button.addEventListener("focus", () => applyActiveState(value));
+        button.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+            event.preventDefault();
+            const next = Math.max(currentValue - 1, 1);
+            setValue(next);
+            const target = buttons[next - 1];
+            target?.focus();
+          }
+          if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+            event.preventDefault();
+            const next = Math.min(currentValue + 1, totalStars);
+            setValue(next);
+            const target = buttons[next - 1];
+            target?.focus();
+          }
+        });
+      });
+
+      widget.addEventListener(
+        "mouseleave",
+        () => {
+          applyActiveState(currentValue);
+        },
+        { passive: true }
+      );
+
+      widget.addEventListener(
+        "blur",
+        (event) => {
+          if (!widget.contains(event.relatedTarget)) {
+            applyActiveState(currentValue);
+          }
+        },
+        true
+      );
+
+      const parentForm = widget.closest("form");
+      if (parentForm) {
+        parentForm.addEventListener("reset", () => {
+          window.requestAnimationFrame(() => {
+            setValue(defaultValue);
+          });
+        });
+      }
+
+      setValue(currentValue);
+
+      const controller = {
+        setValue(value) {
+          setValue(value);
+        },
+        getValue() {
+          return currentValue;
+        },
+        reset() {
+          setValue(defaultValue);
+        },
+        focus() {
+          const target = buttons[currentValue - 1];
+          if (target) {
+            target.focus();
+          }
+        },
+      };
+
+      starRatingControllers.set(widget, controller);
+      return controller;
+    };
+
+    const commentFormRatingWidget = commentForm?.querySelector("[data-star-rating]");
+    const commentEditRatingWidget = commentEditForm?.querySelector("[data-star-rating]");
+    const commentFormRatingControl = commentFormRatingWidget
+      ? setupStarRatingControl(commentFormRatingWidget)
+      : null;
+    const commentEditRatingControl = commentEditRatingWidget
+      ? setupStarRatingControl(commentEditRatingWidget)
+      : null;
 
     const parseComments = () => {
       const raw = page.dataset.comments || "[]";
@@ -701,19 +846,22 @@ document.addEventListener("DOMContentLoaded", () => {
         : commentsState.length;
 
       if (ratingDisplay) {
-        ratingDisplay.innerHTML = "";
-        const valueSpan = document.createElement("span");
-        valueSpan.dataset.ratingAverage = "";
-        if (average !== null) {
-          valueSpan.textContent = average.toFixed(1);
-          const star = document.createElement("span");
-          star.setAttribute("aria-hidden", "true");
-          star.textContent = "★";
-          ratingDisplay.appendChild(valueSpan);
-          ratingDisplay.appendChild(star);
-        } else {
-          valueSpan.textContent = "Not yet rated";
-          ratingDisplay.appendChild(valueSpan);
+        const averageTarget = ratingDisplay.querySelector("[data-rating-average]");
+        const starsContainer = ratingDisplay.querySelector("[data-rating-stars]");
+        if (averageTarget) {
+          if (average !== null) {
+            averageTarget.textContent = average.toFixed(1);
+          } else {
+            averageTarget.textContent = "Not yet rated";
+          }
+        }
+        if (starsContainer) {
+          const stars = starsContainer.querySelectorAll(".star-rating__star");
+          const activeCount = average !== null ? Math.round(Math.max(Math.min(average, stars.length), 0)) : 0;
+          stars.forEach((star, index) => {
+            star.classList.toggle("is-active", average !== null && index < activeCount);
+          });
+          starsContainer.classList.toggle("is-empty", average === null);
         }
       }
 
@@ -765,9 +913,34 @@ document.addEventListener("DOMContentLoaded", () => {
       meta.appendChild(name);
       meta.appendChild(dateEl);
 
-      const rating = document.createElement("span");
+      const ratingValueNumeric = Math.max(
+        0,
+        Math.min(5, Math.round(Number(item.rating) || 0))
+      );
+
+      const rating = document.createElement("div");
       rating.className = "comment-card__rating";
-      rating.textContent = `${item.rating}/5`;
+      rating.setAttribute("aria-label", `Rated ${ratingValueNumeric} out of 5`);
+
+      const ratingStars = document.createElement("div");
+      ratingStars.className = "star-rating star-rating--compact";
+      ratingStars.setAttribute("aria-hidden", "true");
+      for (let index = 0; index < 5; index += 1) {
+        const star = document.createElement("span");
+        star.className = "star-rating__star";
+        if (index < ratingValueNumeric) {
+          star.classList.add("is-active");
+        }
+        star.textContent = "★";
+        ratingStars.appendChild(star);
+      }
+
+      const ratingValue = document.createElement("span");
+      ratingValue.className = "comment-card__rating-value";
+      ratingValue.textContent = `${ratingValueNumeric}/5`;
+
+      rating.appendChild(ratingStars);
+      rating.appendChild(ratingValue);
 
       header.appendChild(meta);
       header.appendChild(rating);
@@ -790,9 +963,11 @@ document.addEventListener("DOMContentLoaded", () => {
           editButton.addEventListener("click", () => {
             commentModalError && showMessage(commentModalError, "");
             commentEditForm.reset();
-            const ratingField = commentEditForm.querySelector("select[name='rating']");
+            const ratingField = commentEditForm.querySelector("input[name='rating']");
             const commentField = commentEditForm.querySelector("textarea[name='comment']");
-            if (ratingField) {
+            if (commentEditRatingControl) {
+              commentEditRatingControl.setValue(item.rating);
+            } else if (ratingField) {
               ratingField.value = String(item.rating);
             }
             if (commentField) {
@@ -884,6 +1059,7 @@ document.addEventListener("DOMContentLoaded", () => {
             };
             commentsState = [newComment, ...commentsState];
             commentForm.reset();
+            commentFormRatingControl?.reset();
           }
           updateRatingMeta(response.meta || {});
           refreshComments();
