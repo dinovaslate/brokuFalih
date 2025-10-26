@@ -564,9 +564,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const commentDeleteTemplate = page.dataset.commentDeleteTemplate || "";
     const bookingForm = page.querySelector("[data-booking-form]");
     const bookingError = page.querySelector("[data-booking-error]");
-    const bookingModal = page.querySelector("[data-booking-modal]");
-    const bookingModalError = bookingModal?.querySelector("[data-booking-modal-error]");
-    const bookingConfirmButton = bookingModal?.querySelector("[data-booking-confirm]");
+    const bookingModal = document.querySelector('[data-booking-modal]');
+    const bookingModalError = bookingModal?.querySelector('[data-booking-modal-error]');
+    const bookingConfirmButton = bookingModal?.querySelector('[data-booking-confirm]');
     const bookingSummary = bookingModal
       ? {
           dates: bookingModal.querySelector('[data-booking-summary="dates"]'),
@@ -574,17 +574,17 @@ document.addEventListener("DOMContentLoaded", () => {
           subtotal: bookingModal.querySelector('[data-booking-summary="subtotal"]'),
         }
       : { dates: null, nights: null, subtotal: null };
-    const commentForm = page.querySelector("[data-comment-form]");
-    const commentError = page.querySelector("[data-comment-error]");
-    const commentList = page.querySelector("[data-comment-list]");
-    const commentEmptyState = page.querySelector("[data-comment-empty]");
-    const commentCountBadge = page.querySelector("[data-comment-count]");
-    const commentEditModal = page.querySelector("[data-comment-modal]");
-    const commentEditForm = commentEditModal?.querySelector("[data-comment-edit-form]");
-    const commentModalError = commentEditModal?.querySelector("[data-comment-modal-error]");
-    const commentSaveButton = commentEditModal?.querySelector("[data-comment-save]");
-    const ratingDisplay = page.querySelector("[data-rating-display]");
-    const ratingCountEl = page.querySelector("[data-rating-count]");
+    const commentForm = page.querySelector('[data-comment-form]');
+    const commentError = page.querySelector('[data-comment-error]');
+    const commentList = page.querySelector('[data-comment-list]');
+    const commentEmptyState = page.querySelector('[data-comment-empty]');
+    const commentCountBadge = page.querySelector('[data-comment-count]');
+    const commentEditModal = document.querySelector('[data-comment-modal]');
+    const commentEditForm = commentEditModal?.querySelector('[data-comment-edit-form]');
+    const commentModalError = commentEditModal?.querySelector('[data-comment-modal-error]');
+    const commentSaveButton = commentEditModal?.querySelector('[data-comment-save]');
+    const ratingDisplay = page.querySelector('[data-rating-display]');
+    const ratingCountEl = page.querySelector('[data-rating-count]');
     const starRatingControllers = new Map();
 
     const setupStarRatingControl = (widget) => {
@@ -592,9 +592,9 @@ document.addEventListener("DOMContentLoaded", () => {
         return starRatingControllers.get(widget) || null;
       }
 
-      const input = widget.querySelector("[data-star-input]");
-      const label = widget.querySelector("[data-star-label]");
-      const buttons = Array.from(widget.querySelectorAll("[data-star-button]"));
+      const input = widget.querySelector('[data-star-input]');
+      const label = widget.querySelector('[data-star-label]');
+      const buttons = Array.from(widget.querySelectorAll('[data-star-button]'));
       if (!input || !buttons.length) {
         return null;
       }
@@ -618,7 +618,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const applyActiveState = (value) => {
         buttons.forEach((button, index) => {
           const isActive = index < value;
-          button.classList.toggle("is-active", isActive);
+          button.classList.toggle('is-active', isActive);
         });
         widget.dataset.currentValue = String(value);
       };
@@ -637,7 +637,7 @@ document.addEventListener("DOMContentLoaded", () => {
         applyActiveState(clamped);
         updateLabel(clamped);
         buttons.forEach((button, index) => {
-          button.setAttribute("aria-checked", index < clamped ? "true" : "false");
+          button.setAttribute('aria-checked', index < clamped ? 'true' : 'false');
           button.tabIndex = index + 1 === clamped ? 0 : -1;
         });
         return clamped;
@@ -645,23 +645,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
       buttons.forEach((button, index) => {
         const value = index + 1;
-        button.type = "button";
-        button.setAttribute("role", "radio");
-        button.setAttribute("aria-checked", "false");
-        button.addEventListener("click", () => {
+        button.type = 'button';
+        button.setAttribute('role', 'radio');
+        button.setAttribute('aria-checked', 'false');
+        button.addEventListener('click', () => {
           setValue(value);
         });
-        button.addEventListener("mouseenter", () => applyActiveState(value));
-        button.addEventListener("focus", () => applyActiveState(value));
-        button.addEventListener("keydown", (event) => {
-          if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+        button.addEventListener('mouseenter', () => applyActiveState(value));
+        button.addEventListener('focus', () => applyActiveState(value));
+        button.addEventListener('keydown', (event) => {
+          if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
             event.preventDefault();
             const next = Math.max(currentValue - 1, 1);
             setValue(next);
             const target = buttons[next - 1];
             target?.focus();
           }
-          if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+          if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
             event.preventDefault();
             const next = Math.min(currentValue + 1, totalStars);
             setValue(next);
@@ -672,7 +672,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       widget.addEventListener(
-        "mouseleave",
+        'mouseleave',
         () => {
           applyActiveState(currentValue);
         },
@@ -680,7 +680,7 @@ document.addEventListener("DOMContentLoaded", () => {
       );
 
       widget.addEventListener(
-        "blur",
+        'blur',
         (event) => {
           if (!widget.contains(event.relatedTarget)) {
             applyActiveState(currentValue);
@@ -689,9 +689,9 @@ document.addEventListener("DOMContentLoaded", () => {
         true
       );
 
-      const parentForm = widget.closest("form");
+      const parentForm = widget.closest('form');
       if (parentForm) {
-        parentForm.addEventListener("reset", () => {
+        parentForm.addEventListener('reset', () => {
           window.requestAnimationFrame(() => {
             setValue(defaultValue);
           });
@@ -722,14 +722,10 @@ document.addEventListener("DOMContentLoaded", () => {
       return controller;
     };
 
-    const commentFormRatingWidget = commentForm?.querySelector("[data-star-rating]");
-    const commentEditRatingWidget = commentEditForm?.querySelector("[data-star-rating]");
-    const commentFormRatingControl = commentFormRatingWidget
-      ? setupStarRatingControl(commentFormRatingWidget)
-      : null;
-    const commentEditRatingControl = commentEditRatingWidget
-      ? setupStarRatingControl(commentEditRatingWidget)
-      : null;
+    const commentFormRatingWidget = commentForm?.querySelector('[data-star-rating]');
+    const commentEditRatingWidget = commentEditForm?.querySelector('[data-star-rating]');
+    const commentFormRatingControl = commentFormRatingWidget ? setupStarRatingControl(commentFormRatingWidget) : null;
+    const commentEditRatingControl = commentEditRatingWidget ? setupStarRatingControl(commentEditRatingWidget) : null;
 
     const normaliseComments = (items) => {
       if (!Array.isArray(items)) {
@@ -742,8 +738,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return {
           id,
           rating: Number.isNaN(ratingValue) ? 0 : ratingValue,
-          comment: item?.comment || "",
-          date: item?.date || "",
+          comment: item?.comment || '',
+          date: item?.date || '',
           user: item?.user || null,
           canEdit: Boolean(item?.can_edit ?? item?.canEdit),
           canDelete: Boolean(item?.can_delete ?? item?.canDelete),
@@ -753,11 +749,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const readJsonFromScript = (scriptId) => {
       if (!scriptId) {
-        return "";
+        return '';
       }
       let scriptElement = null;
       const escapeId = (value) => {
-        if (typeof window.CSS !== "undefined" && typeof window.CSS.escape === "function") {
+        if (typeof window.CSS !== 'undefined' && typeof window.CSS.escape === 'function') {
           try {
             return `#${window.CSS.escape(value)}`;
           } catch (error) {
@@ -767,7 +763,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!value) {
           return null;
         }
-        const safeValue = String(value).replace(/[^0-9A-Za-z_\-:]/g, "\\$&");
+        const safeValue = String(value).replace(/[^0-9A-Za-z_\-:]/g, '\\$&');
         return `#${safeValue}`;
       };
 
@@ -778,7 +774,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!scriptElement) {
         scriptElement = document.getElementById(scriptId);
       }
-      return scriptElement?.textContent || "";
+      return scriptElement?.textContent || '';
     };
 
     const parseComments = () => {
@@ -791,7 +787,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      const scriptId = page.dataset.commentsSource || page.dataset.commentsScriptId || "";
+      const scriptId = page.dataset.commentsSource || page.dataset.commentsScriptId || '';
       if (scriptId) {
         const scriptContent = readJsonFromScript(scriptId);
         if (scriptContent) {
@@ -810,8 +806,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const openModals = new Set();
     let pendingBookingData = null;
 
-    const getCSRFTokenValue = () =>
-      page.querySelector("input[name='csrfmiddlewaretoken']")?.value || "";
+    const getCSRFTokenValue = () => page.querySelector("input[name='csrfmiddlewaretoken']")?.value || '';
 
     const showMessage = (element, message) => {
       if (!element) {
@@ -819,7 +814,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (!message) {
         element.hidden = true;
-        element.textContent = "";
+        element.textContent = '';
       } else {
         element.hidden = false;
         element.textContent = message;
@@ -828,22 +823,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const replaceCommentId = (template, id) => {
       if (!template) {
-        return "";
+        return '';
       }
       return template.replace(/\/0\//, `/${id}/`);
     };
 
     const getErrorMessage = (error) => {
       if (!error) {
-        return "Something went wrong.";
+        return 'Something went wrong.';
       }
       if (Array.isArray(error.errors) && error.errors.length) {
-        return error.errors.join(" ");
+        return error.errors.join(' ');
       }
-      if (typeof error.message === "string" && error.message) {
+      if (typeof error.message === 'string' && error.message) {
         return error.message;
       }
-      return "Something went wrong.";
+      return 'Something went wrong.';
     };
 
     const openModal = (modal) => {
@@ -852,10 +847,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       modal.hidden = false;
       requestAnimationFrame(() => {
-        modal.classList.add("is-visible");
+        modal.classList.add('is-visible');
       });
       openModals.add(modal);
-      document.body.classList.add("modal-open");
+      document.body.classList.add('modal-open');
     };
 
     const closeModal = (modal) => {
@@ -863,15 +858,15 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       openModals.delete(modal);
-      modal.classList.remove("is-visible");
+      modal.classList.remove('is-visible');
       const finalize = () => {
         modal.hidden = true;
         if (!openModals.size) {
-          document.body.classList.remove("modal-open");
+          document.body.classList.remove('modal-open');
         }
       };
       modal.addEventListener(
-        "transitionend",
+        'transitionend',
         (event) => {
           if (event.target === modal) {
             finalize();
@@ -890,27 +885,25 @@ document.addEventListener("DOMContentLoaded", () => {
       const averageRaw = meta?.average_rating ?? meta?.averageRating ?? null;
       const countRaw = meta?.count ?? meta?.rating_count ?? meta?.ratingCount;
       const average = Number.isFinite(Number(averageRaw)) ? Number(averageRaw) : null;
-      const count = Number.isFinite(Number(countRaw))
-        ? Number(countRaw)
-        : commentsState.length;
+      const count = Number.isFinite(Number(countRaw)) ? Number(countRaw) : commentsState.length;
 
       if (ratingDisplay) {
-        const averageTarget = ratingDisplay.querySelector("[data-rating-average]");
-        const starsContainer = ratingDisplay.querySelector("[data-rating-stars]");
+        const averageTarget = ratingDisplay.querySelector('[data-rating-average]');
+        const starsContainer = ratingDisplay.querySelector('[data-rating-stars]');
         if (averageTarget) {
           if (average !== null) {
             averageTarget.textContent = average.toFixed(1);
           } else {
-            averageTarget.textContent = "Not yet rated";
+            averageTarget.textContent = 'Not yet rated';
           }
         }
         if (starsContainer) {
-          const stars = starsContainer.querySelectorAll(".star-rating__star");
+          const stars = starsContainer.querySelectorAll('.star-rating__star');
           const activeCount = average !== null ? Math.round(Math.max(Math.min(average, stars.length), 0)) : 0;
           stars.forEach((star, index) => {
-            star.classList.toggle("is-active", average !== null && index < activeCount);
+            star.classList.toggle('is-active', average !== null && index < activeCount);
           });
-          starsContainer.classList.toggle("is-empty", average === null);
+          starsContainer.classList.toggle('is-empty', average === null);
         }
       }
 
@@ -918,74 +911,65 @@ document.addEventListener("DOMContentLoaded", () => {
         ratingCountEl.textContent = String(Math.max(count, 0));
       }
 
-      page.dataset.averageRating = average !== null ? String(average) : "";
+      page.dataset.averageRating = average !== null ? String(average) : '';
       page.dataset.ratingCount = String(Math.max(count, 0));
 
       if (commentCountBadge) {
         const displayCount = Math.max(count, commentsState.length);
-        commentCountBadge.textContent = displayCount
-          ? `${displayCount} ${displayCount === 1 ? "comment" : "comments"}`
-          : "No comments yet";
+        commentCountBadge.textContent = displayCount ? `${displayCount} ${displayCount === 1 ? 'comment' : 'comments'}` : 'No comments yet';
       }
     };
 
     const createCommentElement = (item) => {
-      const listItem = document.createElement("li");
-      listItem.className = "comment-card";
+      const listItem = document.createElement('li');
+      listItem.className = 'comment-card';
       listItem.dataset.commentId = String(item.id);
 
-      const header = document.createElement("div");
-      header.className = "comment-card__header";
+      const header = document.createElement('div');
+      header.className = 'comment-card__header';
 
-      const meta = document.createElement("div");
-      meta.className = "comment-card__meta";
+      const meta = document.createElement('div');
+      meta.className = 'comment-card__meta';
 
-      const name = document.createElement("span");
-      name.className = "comment-card__author";
+      const name = document.createElement('span');
+      name.className = 'comment-card__author';
       const user = item.user || {};
-      name.textContent =
-        user.display_name ||
-        user.full_name ||
-        user.username ||
-        "PitchPilot player";
+      name.textContent = user.display_name || user.full_name || user.username || 'PitchPilot player';
 
-      const dateEl = document.createElement("time");
-      dateEl.className = "comment-card__date";
+      const dateEl = document.createElement('time');
+      dateEl.className = 'comment-card__date';
       const parsedDate = parseISODate(item.date);
       if (parsedDate) {
         dateEl.dateTime = item.date;
         dateEl.textContent = formatDate(parsedDate);
       } else {
-        dateEl.textContent = item.date || "";
+        dateEl.textContent = item.date || '';
       }
 
       meta.appendChild(name);
       meta.appendChild(dateEl);
 
-      const ratingValueNumeric = Math.max(
-        0,
-        Math.min(5, Math.round(Number(item.rating) || 0))
-      );
+      const ratingValueNumeric = Math.max(0, Math.min(5, Math.round(Number(item.rating) || 0)));
 
-      const rating = document.createElement("div");
-      rating.className = "comment-card__rating";
-      rating.setAttribute("aria-label", `Rated ${ratingValueNumeric} out of 5`);
+      const rating = document.createElement('div');
+      rating.className = 'comment-card__rating';
+      rating.setAttribute('aria-label', `Rated ${ratingValueNumeric} out of 5`);
 
-      const ratingStars = document.createElement("div");
-      ratingStars.className = "star-rating star-rating--compact";
-      ratingStars.setAttribute("aria-hidden", "true");
+      const ratingStars = document.createElement('div');
+      ratingStars.className = 'star-rating star-rating--compact';
+      ratingStars.setAttribute('aria-hidden', 'true');
       for (let index = 0; index < 5; index += 1) {
-        const star = document.createElement("span");
-        star.className = "star-rating__star";
+        const star = document.createElement('span');
+        star.className = 'star-rating__star';
         if (index < ratingValueNumeric) {
-          star.classList.add("is-active");
+          star.classList.add('is-active');
         }
-        star.textContent = "★";
+        star.textContent = '★';
         ratingStars.appendChild(star);
       }
 
-      const ratingValue = document.createElement("span");
-      ratingValue.className = "comment-card__rating-value";
+      const ratingValue = document.createElement('span');
+      ratingValue.className = 'comment-card__rating-value';
       ratingValue.textContent = `${ratingValueNumeric}/5`;
 
       rating.appendChild(ratingStars);
@@ -994,23 +978,23 @@ document.addEventListener("DOMContentLoaded", () => {
       header.appendChild(meta);
       header.appendChild(rating);
 
-      const body = document.createElement("p");
-      body.className = "comment-card__body";
+      const body = document.createElement('p');
+      body.className = 'comment-card__body';
       body.textContent = item.comment;
 
       listItem.appendChild(header);
       listItem.appendChild(body);
 
       if (item.canEdit || item.canDelete) {
-        const actions = document.createElement("div");
-        actions.className = "comment-card__actions";
+        const actions = document.createElement('div');
+        actions.className = 'comment-card__actions';
 
         if (item.canEdit && commentEditModal && commentEditForm && commentSaveButton) {
-          const editButton = document.createElement("button");
-          editButton.type = "button";
-          editButton.textContent = "Edit";
-          editButton.addEventListener("click", () => {
-            commentModalError && showMessage(commentModalError, "");
+          const editButton = document.createElement('button');
+          editButton.type = 'button';
+          editButton.textContent = 'Edit';
+          editButton.addEventListener('click', () => {
+            commentModalError && showMessage(commentModalError, '');
             commentEditForm.reset();
             const ratingField = commentEditForm.querySelector("input[name='rating']");
             const commentField = commentEditForm.querySelector("textarea[name='comment']");
@@ -1029,11 +1013,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (item.canDelete) {
-          const deleteButton = document.createElement("button");
-          deleteButton.type = "button";
-          deleteButton.textContent = "Delete";
-          deleteButton.addEventListener("click", async () => {
-            if (!window.confirm("Are you sure you want to delete this comment?")) {
+          const deleteButton = document.createElement('button');
+          deleteButton.type = 'button';
+          deleteButton.textContent = 'Delete';
+          deleteButton.addEventListener('click', async () => {
+            if (!window.confirm('Are you sure you want to delete this comment?')) {
               return;
             }
             const url = replaceCommentId(commentDeleteTemplate, item.id);
@@ -1042,16 +1026,14 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             const csrfToken = getCSRFTokenValue();
             if (!csrfToken) {
-              window.alert("Missing security token. Please refresh the page and try again.");
+              window.alert('Missing security token. Please refresh the page and try again.');
               return;
             }
             const formData = new FormData();
-            formData.append("csrfmiddlewaretoken", csrfToken);
+            formData.append('csrfmiddlewaretoken', csrfToken);
             try {
               const response = await submitForm(url, formData);
-              commentsState = commentsState.filter(
-                (comment) => String(comment.id) !== String(item.id)
-              );
+              commentsState = commentsState.filter((comment) => String(comment.id) !== String(item.id));
               updateRatingMeta(response.meta || {});
               refreshComments();
             } catch (error) {
@@ -1069,7 +1051,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const refreshComments = () => {
       if (commentList) {
-        commentList.innerHTML = "";
+        commentList.innerHTML = '';
         commentsState.forEach((item) => {
           commentList.appendChild(createCommentElement(item));
         });
@@ -1078,20 +1060,15 @@ document.addEventListener("DOMContentLoaded", () => {
         commentEmptyState.hidden = commentsState.length > 0;
       }
       if (commentCountBadge) {
-        const count = Math.max(
-          commentsState.length,
-          Number(page.dataset.ratingCount || 0)
-        );
-        commentCountBadge.textContent = count
-          ? `${count} ${count === 1 ? "comment" : "comments"}`
-          : "No comments yet";
+        const count = Math.max(commentsState.length, Number(page.dataset.ratingCount || 0));
+        commentCountBadge.textContent = count ? `${count} ${count === 1 ? 'comment' : 'comments'}` : 'No comments yet';
       }
     };
 
     if (commentForm) {
-      commentForm.addEventListener("submit", async (event) => {
+      commentForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        showMessage(commentError, "");
+        showMessage(commentError, '');
         const formData = new FormData(commentForm);
         try {
           const response = await submitForm(commentForm.action, formData);
@@ -1100,8 +1077,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const newComment = {
               id: Number.isNaN(numericId) ? response.data.id : numericId,
               rating: Number(response.data.rating) || 0,
-              comment: response.data.comment || "",
-              date: response.data.date || "",
+              comment: response.data.comment || '',
+              date: response.data.date || '',
               user: response.data.user || null,
               canEdit: Boolean(response.data.can_edit ?? response.data.canEdit),
               canDelete: Boolean(response.data.can_delete ?? response.data.canDelete),
@@ -1119,8 +1096,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (commentSaveButton && commentEditForm && commentEditModal) {
-      commentSaveButton.addEventListener("click", async () => {
-        showMessage(commentModalError, "");
+      commentSaveButton.addEventListener('click', async () => {
+        showMessage(commentModalError, '');
         const targetId = commentEditForm.dataset.commentId;
         if (!targetId) {
           return;
@@ -1139,15 +1116,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const updatedComment = {
               id: updatedId,
               rating: Number(response.data.rating) || 0,
-              comment: response.data.comment || "",
-              date: response.data.date || "",
+              comment: response.data.comment || '',
+              date: response.data.date || '',
               user: response.data.user || null,
               canEdit: Boolean(response.data.can_edit ?? response.data.canEdit),
               canDelete: Boolean(response.data.can_delete ?? response.data.canDelete),
             };
-            const index = commentsState.findIndex(
-              (comment) => String(comment.id) === String(updatedId)
-            );
+            const index = commentsState.findIndex((comment) => String(comment.id) === String(updatedId));
             if (index >= 0) {
               commentsState.splice(index, 1, updatedComment);
             } else {
@@ -1167,40 +1142,40 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (commentEditModal) {
-      commentEditModal.addEventListener("click", (event) => {
+      commentEditModal.addEventListener('click', (event) => {
         if (event.target === commentEditModal) {
           commentEditForm?.reset();
           if (commentEditForm?.dataset) {
             delete commentEditForm.dataset.commentId;
           }
-          showMessage(commentModalError, "");
+          showMessage(commentModalError, '');
           closeModal(commentEditModal);
         }
       });
     }
 
     if (bookingModal) {
-      bookingModal.addEventListener("click", (event) => {
+      bookingModal.addEventListener('click', (event) => {
         if (event.target === bookingModal) {
           pendingBookingData = null;
-          showMessage(bookingModalError, "");
+          showMessage(bookingModalError, '');
           closeModal(bookingModal);
         }
       });
     }
 
-    page.querySelectorAll("[data-modal-close]").forEach((trigger) => {
-      trigger.addEventListener("click", () => {
-        const modal = trigger.closest(".modal");
+    document.querySelectorAll('[data-modal-close]').forEach((trigger) => {
+      trigger.addEventListener('click', () => {
+        const modal = trigger.closest('.modal');
         if (modal === commentEditModal) {
           commentEditForm?.reset();
           if (commentEditForm?.dataset) {
             delete commentEditForm.dataset.commentId;
           }
-          showMessage(commentModalError, "");
+          showMessage(commentModalError, '');
         }
         if (modal === bookingModal) {
-          showMessage(bookingModalError, "");
+          showMessage(bookingModalError, '');
           pendingBookingData = null;
         }
         closeModal(modal);

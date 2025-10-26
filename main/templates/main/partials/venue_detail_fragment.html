@@ -1,4 +1,82 @@
 {% load humanize %}
+  <div class="modal" data-booking-modal hidden>
+    <div class="modal__dialog">
+      <header class="modal__header">
+        <h3>Confirm your booking</h3>
+        <button type="button" class="modal__close" data-modal-close aria-label="Close">×</button>
+      </header>
+      <div class="modal__body">
+        <p>Review the investment before finalising your booking.</p>
+        <dl class="modal-summary">
+          <div>
+            <dt>Schedule</dt>
+            <dd data-booking-summary="dates"></dd>
+          </div>
+          <div>
+            <dt>Total nights</dt>
+            <dd data-booking-summary="nights"></dd>
+          </div>
+          <div>
+            <dt>Subtotal</dt>
+            <dd data-booking-summary="subtotal"></dd>
+          </div>
+        </dl>
+        <p class="form-error" data-booking-modal-error hidden></p>
+      </div>
+      <footer class="modal__footer">
+        <button type="button" class="button" data-modal-close>Cancel</button>
+        <button type="button" class="button button--primary" data-booking-confirm>
+          Create booking
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <div class="modal" data-comment-modal hidden>
+    <div class="modal__dialog">
+      <header class="modal__header">
+        <h3>Edit comment</h3>
+        <button type="button" class="modal__close" data-modal-close aria-label="Close">×</button>
+      </header>
+      <form class="modal__body" method="post" data-comment-edit-form>
+        {% csrf_token %}
+        <label>
+          <span>Rating</span>
+          <div class="star-rating" data-star-rating data-default-value="4">
+            <input
+              type="hidden"
+              name="rating"
+              value="4"
+              required
+              data-star-input
+            />
+            <div class="star-rating__stars" role="radiogroup" aria-label="Update rating">
+              {% for value in "12345" %}
+                <button
+                  type="button"
+                  class="star-rating__star"
+                  data-star-button="{{ value }}"
+                  aria-label="{{ value }} star{% if value != '1' %}s{% endif %}"
+                >
+                  ★
+                </button>
+              {% endfor %}
+            </div>
+            <span class="star-rating__value" data-star-label>4 / 5</span>
+          </div>
+        </label>
+        <label>
+          <span>Comment</span>
+          <textarea name="comment" rows="4" required></textarea>
+        </label>
+        <p class="form-error" data-comment-modal-error hidden></p>
+      </form>
+      <footer class="modal__footer">
+        <button type="button" class="button" data-modal-close>Cancel</button>
+        <button type="button" class="button button--primary" data-comment-save>Save changes</button>
+      </footer>
+    </div>
+  </div>
 <section
   class="venue-detail page-fragment"
   data-page-fragment
@@ -209,83 +287,6 @@
     </section>
   </div>
 
-  <div class="modal" data-booking-modal hidden>
-    <div class="modal__dialog">
-      <header class="modal__header">
-        <h3>Confirm your booking</h3>
-        <button type="button" class="modal__close" data-modal-close aria-label="Close">×</button>
-      </header>
-      <div class="modal__body">
-        <p>Review the investment before finalising your booking.</p>
-        <dl class="modal-summary">
-          <div>
-            <dt>Schedule</dt>
-            <dd data-booking-summary="dates"></dd>
-          </div>
-          <div>
-            <dt>Total nights</dt>
-            <dd data-booking-summary="nights"></dd>
-          </div>
-          <div>
-            <dt>Subtotal</dt>
-            <dd data-booking-summary="subtotal"></dd>
-          </div>
-        </dl>
-        <p class="form-error" data-booking-modal-error hidden></p>
-      </div>
-      <footer class="modal__footer">
-        <button type="button" class="button" data-modal-close>Cancel</button>
-        <button type="button" class="button button--primary" data-booking-confirm>
-          Create booking
-        </button>
-      </footer>
-    </div>
-  </div>
 
-  <div class="modal" data-comment-modal hidden>
-    <div class="modal__dialog">
-      <header class="modal__header">
-        <h3>Edit comment</h3>
-        <button type="button" class="modal__close" data-modal-close aria-label="Close">×</button>
-      </header>
-      <form class="modal__body" method="post" data-comment-edit-form>
-        {% csrf_token %}
-        <label>
-          <span>Rating</span>
-          <div class="star-rating" data-star-rating data-default-value="4">
-            <input
-              type="hidden"
-              name="rating"
-              value="4"
-              required
-              data-star-input
-            />
-            <div class="star-rating__stars" role="radiogroup" aria-label="Update rating">
-              {% for value in "12345" %}
-                <button
-                  type="button"
-                  class="star-rating__star"
-                  data-star-button="{{ value }}"
-                  aria-label="{{ value }} star{% if value != '1' %}s{% endif %}"
-                >
-                  ★
-                </button>
-              {% endfor %}
-            </div>
-            <span class="star-rating__value" data-star-label>4 / 5</span>
-          </div>
-        </label>
-        <label>
-          <span>Comment</span>
-          <textarea name="comment" rows="4" required></textarea>
-        </label>
-        <p class="form-error" data-comment-modal-error hidden></p>
-      </form>
-      <footer class="modal__footer">
-        <button type="button" class="button" data-modal-close>Cancel</button>
-        <button type="button" class="button button--primary" data-comment-save>Save changes</button>
-      </footer>
-    </div>
-  </div>
   {{ comments_json_script }}
 </section>
