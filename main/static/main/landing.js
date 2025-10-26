@@ -1,7 +1,8 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const animated = document.querySelectorAll("[data-animate]");
-  const observer = new IntersectionObserver(
-    (entries) => {
+const PAGE_FRAGMENT_SELECTOR = "[data-page-fragment]";
+
+const createIntersectionObserver = () =>
+  new IntersectionObserver(
+    (entries, observer) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           entry.target.classList.add("is-visible");
@@ -12,28 +13,64 @@ document.addEventListener("DOMContentLoaded", () => {
     { threshold: 0.25 }
   );
 
-  animated.forEach((element) => observer.observe(element));
+document.addEventListener("DOMContentLoaded", () => {
+  const mainContainer = document.querySelector(".landing-main");
+  const body = document.body;
+  const parser = new DOMParser();
+  const observer = createIntersectionObserver();
+  let parallaxItems = Array.from(document.querySelectorAll("[data-parallax]"));
+  let isNavigating = false;
+  let lastRequestedUrl = window.location.pathname + window.location.search;
 
-  const counters = document.querySelectorAll("[data-counter]");
-  if (typeof anime === "function") {
-    counters.forEach((counter, index) => {
-      const finalValue = Number(counter.dataset.counter || counter.textContent || 0);
-      anime({
-        targets: counter,
-        innerHTML: [0, finalValue],
-        easing: "easeOutExpo",
-        round: 1,
-        duration: 1800,
-        delay: index * 140,
-        update: (anim) => {
-          counter.setAttribute("aria-label", `${Math.round(anim.animations[0].currentValue)} metric value`);
-        },
-      });
+  const registerAnimatedElements = (root = document) => {
+    root.querySelectorAll("[data-animate]").forEach((element) => {
+      if (!element.classList.contains("is-visible")) {
+        observer.observe(element);
+      }
     });
-  }
+  };
 
-  const parallaxItems = document.querySelectorAll("[data-parallax]");
-  const parallax = (event) => {
+  const animateCounters = (root = document) => {
+    const counters = root.querySelectorAll("[data-counter]");
+    if (typeof anime === "function") {
+      counters.forEach((counter, index) => {
+        if (counter.dataset.animated === "true") {
+          return;
+        }
+        const finalValue = Number(counter.dataset.counter || counter.textContent || 0);
+        counter.dataset.animated = "true";
+        anime({
+          targets: counter,
+          innerHTML: [0, finalValue],
+          easing: "easeOutExpo",
+          round: 1,
+          duration: 1800,
+          delay: index * 140,
+          update: (anim) => {
+            counter.setAttribute(
+              "aria-label",
+              `${Math.round(anim.animations[0].currentValue)} metric value`
+            );
+          },
+        });
+      });
+    } else {
+      counters.forEach((counter) => {
+        if (counter.dataset.animated === "true") {
+          return;
+        }
+        counter.dataset.animated = "true";
+        counter.textContent = counter.dataset.counter || counter.textContent;
+      });
+    }
+  };
+
+  const refreshParallaxItems = (root = document) => {
+    const newItems = Array.from(root.querySelectorAll("[data-parallax]"));
+    parallaxItems = Array.from(new Set([...parallaxItems, ...newItems]));
+  };
+
+  const applyParallax = (event) => {
     const { innerWidth, innerHeight } = window;
     const x = (event.clientX / innerWidth - 0.5) * 2;
     const y = (event.clientY / innerHeight - 0.5) * 2;
@@ -43,23 +80,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  window.addEventListener("mousemove", parallax);
-
-  // Fallback: ensure counters display their target values if anime.js is unavailable
-  if (typeof anime !== "function") {
-    counters.forEach((counter) => {
-      counter.textContent = counter.dataset.counter || counter.textContent;
-    });
-  }
+  window.addEventListener("mousemove", applyParallax);
 
   const floatingNav = document.querySelector(".floating-nav");
+  let closeFloatingMenu = () => {};
+
   if (floatingNav) {
     const navMenuButton = floatingNav.querySelector(".floating-nav__menu");
-    const navLinks = floatingNav.querySelectorAll(".floating-nav__link");
     let lastScrollY = window.scrollY;
     let scheduled = false;
 
-    const closeMenu = () => {
+    closeFloatingMenu = () => {
       floatingNav.classList.remove("is-open");
       if (navMenuButton) {
         navMenuButton.setAttribute("aria-expanded", "false");
@@ -72,12 +103,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (currentY <= 12) {
         floatingNav.classList.remove("is-visible");
-        closeMenu();
+        closeFloatingMenu();
       } else if (isScrollingDown) {
         floatingNav.classList.add("is-visible");
       } else {
         floatingNav.classList.remove("is-visible");
-        closeMenu();
+        closeFloatingMenu();
       }
 
       lastScrollY = currentY;
@@ -100,11 +131,255 @@ document.addEventListener("DOMContentLoaded", () => {
         navMenuButton.setAttribute("aria-expanded", String(isOpen));
       });
     }
+  }
 
-    navLinks.forEach((link) => {
-      link.addEventListener("click", () => {
-        closeMenu();
+  const applyPageMetadata = (fragment) => {
+    const title = fragment.dataset.pageTitle;
+    const pageKey = fragment.dataset.page;
+    if (title) {
+      document.title = `${title} · Ragaspace Experience`;
+    }
+    if (pageKey) {
+      body.setAttribute("data-active-page", pageKey);
+    }
+  };
+
+  const finalizeFragment = (fragment) => {
+    registerAnimatedElements(fragment);
+    animateCounters(fragment);
+    refreshParallaxItems(fragment);
+    attachAjaxLinks(fragment);
+    attachScrollLinks(fragment);
+    initVenuesPage(fragment);
+    applyPageMetadata(fragment);
+  };
+
+  const swapFragment = (fragment, url, { pushState = true, transition = "slide", onComplete } = {}) => {
+    if (!mainContainer) {
+      window.location.href = url;
+      return;
+    }
+
+    fragment.classList.add("page-fragment", `page-fragment--${transition}`);
+    fragment.classList.add("is-transitioning");
+
+    const current = mainContainer.querySelector(PAGE_FRAGMENT_SELECTOR);
+    if (current) {
+      current.classList.add("is-exiting");
+      current.addEventListener(
+        "transitionend",
+        () => {
+          current.remove();
+        },
+        { once: true }
+      );
+    }
+
+    mainContainer.appendChild(fragment);
+
+    requestAnimationFrame(() => {
+      fragment.classList.add("is-active");
+      fragment.classList.remove("is-transitioning");
+      fragment.addEventListener(
+        "transitionend",
+        () => {
+          fragment.classList.remove(`page-fragment--${transition}`);
+          if (typeof onComplete === "function") {
+            onComplete();
+          }
+        },
+        { once: true }
+      );
+    });
+
+    if (pushState) {
+      history.pushState({ url }, "", url);
+    }
+
+    finalizeFragment(fragment);
+  };
+
+  const parseFragmentFromHTML = (html) => {
+    const doc = parser.parseFromString(html, "text/html");
+    const fragment = doc.querySelector(PAGE_FRAGMENT_SELECTOR);
+    return fragment ? fragment : null;
+  };
+
+  const fetchFragment = async (url) => {
+    const response = await fetch(url, {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${url}`);
+    }
+
+    const html = await response.text();
+    const fragment = parseFragmentFromHTML(html);
+
+    if (!fragment) {
+      throw new Error("Fragment missing");
+    }
+
+    return fragment;
+  };
+
+  const navigate = async (url, { transition = "slide", pushState = true, onComplete } = {}) => {
+    if (isNavigating) {
+      return;
+    }
+
+    isNavigating = true;
+    lastRequestedUrl = url;
+    body.classList.add("is-transitioning");
+
+    try {
+      const fragment = await fetchFragment(url);
+      swapFragment(fragment, url, { transition, pushState, onComplete });
+    } catch (error) {
+      window.location.href = url;
+    } finally {
+      window.setTimeout(() => body.classList.remove("is-transitioning"), 320);
+      isNavigating = false;
+    }
+  };
+
+  const attachAjaxLinks = (root = document) => {
+    root.querySelectorAll("[data-ajax-nav]").forEach((link) => {
+      if (link.dataset.ajaxBound === "true") {
+        return;
+      }
+      link.dataset.ajaxBound = "true";
+      link.addEventListener("click", (event) => {
+        const url = link.getAttribute("href");
+        if (!url) {
+          return;
+        }
+        event.preventDefault();
+        closeFloatingMenu();
+        const transition = link.dataset.transition || "slide";
+        navigate(url, { transition });
       });
     });
-  }
+  };
+
+  const attachScrollLinks = (root = document) => {
+    root.querySelectorAll("[data-scroll-home]").forEach((link) => {
+      if (link.dataset.scrollBound === "true") {
+        return;
+      }
+      link.dataset.scrollBound = "true";
+      link.addEventListener("click", (event) => {
+        const url = link.getAttribute("href") || "";
+        const isHome = body.getAttribute("data-active-page") === "home";
+        if (isHome) {
+          const hero = document.querySelector("#home");
+          if (hero) {
+            event.preventDefault();
+            hero.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        } else if (url) {
+          event.preventDefault();
+          navigate(url, {
+            transition: "slide",
+            onComplete: () => {
+              const hero = document.querySelector("#home");
+              if (hero) {
+                hero.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            },
+          });
+        }
+      });
+    });
+  };
+
+  const initVenuesPage = (root = document) => {
+    const page = root.matches?.(".venues-page") ? root : root.querySelector?.(".venues-page");
+    if (!page || page.dataset.initialised === "true") {
+      return;
+    }
+
+    const form = page.querySelector("[data-venues-search]");
+    const input = page.querySelector("[data-venues-input]");
+    const cards = Array.from(page.querySelectorAll(".venue-card"));
+    const countEl = page.querySelector("[data-venues-count]");
+    const emptyState = page.querySelector("[data-venues-empty]");
+    const grid = page.querySelector("[data-venues-grid]");
+    const meta = page.querySelector("[data-venues-meta]");
+
+    const filterCards = () => {
+      const query = (input?.value || "").trim().toLowerCase();
+      const keywords = query ? query.split(/\s+/).filter(Boolean) : [];
+      let matches = 0;
+
+      cards.forEach((card) => {
+        const haystack = card.dataset.searchText || "";
+        const isMatch = keywords.every((keyword) => haystack.includes(keyword));
+        card.classList.toggle("is-hidden", !isMatch);
+        if (isMatch) {
+          card.style.setProperty("--stagger-index", String(matches));
+          card.classList.add("is-revealed");
+          matches += 1;
+        } else {
+          card.classList.remove("is-revealed");
+          card.style.removeProperty("--stagger-index");
+        }
+      });
+
+      if (countEl) {
+        countEl.textContent = matches;
+      }
+      if (emptyState) {
+        emptyState.hidden = matches > 0;
+      }
+      if (grid) {
+        grid.classList.toggle("is-filtering", keywords.length > 0);
+      }
+      if (meta) {
+        meta.classList.toggle("is-muted", keywords.length > 0);
+      }
+    };
+
+    if (form) {
+      form.addEventListener("submit", (event) => event.preventDefault());
+    }
+
+    if (input) {
+      input.addEventListener("input", () => {
+        window.requestAnimationFrame(filterCards);
+      });
+    }
+
+    filterCards();
+    page.dataset.initialised = "true";
+  };
+
+  const hydrateInitialFragment = () => {
+    const initialFragment = mainContainer?.querySelector(PAGE_FRAGMENT_SELECTOR);
+    if (initialFragment) {
+      initialFragment.classList.add("is-active");
+      finalizeFragment(initialFragment);
+      history.replaceState({ url: window.location.pathname + window.location.search }, "");
+    }
+  };
+
+  window.addEventListener("popstate", () => {
+    const targetUrl = window.location.pathname + window.location.search;
+    if (targetUrl === lastRequestedUrl) {
+      return;
+    }
+    navigate(targetUrl, { transition: "fade", pushState: false });
+  });
+
+  hydrateInitialFragment();
+  registerAnimatedElements(document);
+  animateCounters(document);
+  refreshParallaxItems(document);
+  attachAjaxLinks(document);
+  attachScrollLinks(document);
+  initVenuesPage(document);
 });
