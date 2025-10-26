@@ -65,7 +65,7 @@
             </a>
           </li>
           <li>
-            <a class="floating-nav__link" href="#profile" data-nav-target="profile">Profile</a>
+            <a class="floating-nav__link" href="{% url 'main:logout' %}">Log out</a>
           </li>
         </ul>
       </div>
@@ -93,7 +93,7 @@
               <li>
                 <a href="{% url 'main:bookings_page' %}" data-ajax-nav>Bookings</a>
               </li>
-              <li><a href="#profile">Profile</a></li>
+              <li><a href="{% url 'main:logout' %}">Log out</a></li>
             </ul>
           </div>
           <div>
