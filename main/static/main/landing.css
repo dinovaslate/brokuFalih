@@ -37,7 +37,9 @@ body.landing-body {
   background: var(--bg-gradient);
   overflow-x: hidden;
 }
-
+[hidden]{
+  display: none !important;
+}
 .floating-nav {
   position: fixed;
   top: 1.5rem;
@@ -770,6 +772,7 @@ body.landing-body {
   border: 1px solid rgba(79, 199, 255, 0.2);
   overflow: hidden;
   transition: transform var(--transition), box-shadow var(--transition);
+  max-width: 750px;
 }
 
 .venue-card:hover {
@@ -1078,7 +1081,7 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
 
 .venues-page {
   position: relative;
-  width: min(1280px, 92vw);
+  width: min(1480px, 92vw) !important;
   margin: clamp(4.5rem, 9vw, 6.5rem) auto clamp(6rem, 12vw, 8rem);
   display: grid;
   gap: clamp(2.6rem, 4vw, 3.6rem);
@@ -1530,7 +1533,7 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
   position: relative;
   display: grid;
   gap: clamp(2rem, 3vw, 2.8rem);
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)) !important;
 }
 
 .venues-grid.is-filtering::after {
