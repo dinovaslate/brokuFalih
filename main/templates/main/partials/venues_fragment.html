@@ -6,17 +6,25 @@
   data-page-title="Venues Directory"
 >
   <div class="venues-intro" data-animate="fade-up">
-    <a class="venues-intro__back" href="{% url 'main:dashboard' %}" data-ajax-nav>
-      <span aria-hidden="true">←</span>
-      <span>Back to spotlight</span>
-    </a>
-    <span class="venues-intro__eyebrow">PitchPilot network</span>
-    <h1>Explore our immersive arena directory</h1>
-    <p>
-      Filter high-performance turfs, boutique domes, and under-the-lights courts without refreshing
-      the page. Combine keywords like <strong>"Aurora 250000 evening"</strong> to surface the exact
-      vibe you are manifesting.
-    </p>
+    <div class="venues-intro__content">
+      <a class="venues-intro__back" href="{% url 'main:dashboard' %}" data-ajax-nav>
+        <span aria-hidden="true">←</span>
+        <span>Back to spotlight</span>
+      </a>
+      <span class="venues-intro__eyebrow">PitchPilot network</span>
+      <h1>Explore our immersive arena directory</h1>
+      <p>
+        Filter high-performance turfs, boutique domes, and under-the-lights courts without
+        refreshing the page. Combine keywords like <strong>"Aurora 250000 evening"</strong> to
+        surface the exact vibe you are manifesting.
+      </p>
+    </div>
+    <div class="venues-intro__art" aria-hidden="true">
+      <div class="venues-intro__planet venues-intro__planet--one"></div>
+      <div class="venues-intro__planet venues-intro__planet--two"></div>
+      <div class="venues-intro__ring venues-intro__ring--wide"></div>
+      <div class="venues-intro__ring venues-intro__ring--tight"></div>
+    </div>
   </div>
 
   <div class="venues-toolbar" data-animate="fade-up">
