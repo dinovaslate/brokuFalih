@@ -8,7 +8,7 @@
   data-price="{{ venue.price }}"
   data-average-rating="{{ venue.average_rating|default_if_none:'' }}"
   data-rating-count="{{ venue.rating_count|default_if_none:0 }}"
-  data-comments='{{ comments_json|escapejs }}'
+  data-comments-source="{{ comments_script_id }}"
   data-comment-update-template="{{ comment_update_template }}"
   data-comment-delete-template="{{ comment_delete_template }}"
 >
@@ -288,3 +288,4 @@
     </div>
   </div>
 </section>
+{{ comments_json_script }}
