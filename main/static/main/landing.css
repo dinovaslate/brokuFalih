@@ -1026,7 +1026,11 @@ body.landing-body {
 
 .page-fragment.is-active {
   opacity: 1;
-  transform: translate3d(0, 0, 0);
+  transform: none;
+}
+
+body.modal-open .page-fragment {
+  transform: none !important;
 }
 
 .page-fragment.is-exiting {
