@@ -563,7 +563,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const searchInput = page.querySelector("[data-bookings-input]");
-    const rows = Array.from(page.querySelectorAll("[data-booking-row]"));
+    let rows = Array.from(page.querySelectorAll("[data-booking-row]"));
+    const csrfInput = page.querySelector("[data-csrf-token]");
     const emptyState = page.querySelector("[data-bookings-empty]");
     const meta = page.querySelector("[data-bookings-meta]");
     const defaultLabel = meta?.querySelector("[data-bookings-meta-default]");
@@ -654,11 +655,74 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     };
 
+    const getCSRFToken = () => csrfInput?.value || "";
+
+    const getErrorMessage = (error) => {
+      if (!error) {
+        return "Something went wrong.";
+      }
+      if (Array.isArray(error.errors) && error.errors.length) {
+        return error.errors.join(" ");
+      }
+      if (typeof error.message === "string" && error.message) {
+        return error.message;
+      }
+      return "Something went wrong.";
+    };
+
     if (searchInput) {
       searchInput.addEventListener("input", () => {
         applyFilter();
       });
     }
+
+    const handleCancel = async (button) => {
+      const url = button.dataset.cancelUrl;
+      const row = button.closest("[data-booking-row]");
+      if (!url || !row) {
+        return;
+      }
+
+      const confirmed = window.confirm(
+        "Cancel this booking? Unpaid bookings can be removed."
+      );
+      if (!confirmed) {
+        return;
+      }
+
+      const originalLabel = button.textContent;
+      button.disabled = true;
+      button.textContent = "Cancelling…";
+
+      const formData = new FormData();
+      const csrfToken = getCSRFToken();
+      if (csrfToken) {
+        formData.append("csrfmiddlewaretoken", csrfToken);
+      }
+
+      try {
+        await submitForm(url, formData);
+        window.location.reload();
+      } catch (error) {
+        window.alert(getErrorMessage(error));
+      } finally {
+        button.disabled = false;
+        button.textContent = originalLabel || "Cancel booking";
+      }
+    };
+
+    page.addEventListener("click", async (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const button = target?.closest?.("[data-booking-cancel]");
+      if (!button || !page.contains(button)) {
+        return;
+      }
+      event.preventDefault();
+      if (button.disabled) {
+        return;
+      }
+      await handleCancel(button);
+    });
 
     applyFilter({ animate: true });
     page.dataset.initialised = "true";
