@@ -32,13 +32,26 @@
         />
         <span class="venues-search__glow" aria-hidden="true"></span>
       </label>
+      <ul class="venues-search__tokens" data-venues-tokens aria-hidden="true"></ul>
       <p class="venues-search__hint">
         Every space-separated word becomes its own intent. Mix and match names, vibes, or budgets to
         curate your perfect match.
       </p>
     </form>
-    <div class="venues-toolbar__meta" data-venues-meta>
-      Showing <span data-venues-count>{{ venues|length }}</span> curated venues.
+    <div class="venues-toolbar__meta" data-venues-meta data-total="{{ venues|length }}">
+      <span class="venues-toolbar__meta-default" data-venues-meta-default>
+        Showing <span data-venues-count>{{ venues|length }}</span> curated venues.
+      </span>
+      <span
+        class="venues-toolbar__meta-filter"
+        data-venues-filter-label
+        aria-hidden="true"
+        aria-live="polite"
+      >
+        Matching <span data-venues-matched>{{ venues|length }}</span>
+        of <span data-venues-total>{{ venues|length }}</span> venues for
+        <span data-venues-query></span>.
+      </span>
     </div>
   </div>
 
