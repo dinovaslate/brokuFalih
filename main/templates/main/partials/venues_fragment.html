@@ -6,17 +6,25 @@
   data-page-title="Venues Directory"
 >
   <div class="venues-intro" data-animate="fade-up">
-    <a class="venues-intro__back" href="{% url 'main:dashboard' %}" data-ajax-nav>
-      <span aria-hidden="true">←</span>
-      <span>Back to spotlight</span>
-    </a>
-    <span class="venues-intro__eyebrow">PitchPilot network</span>
-    <h1>Explore our immersive arena directory</h1>
-    <p>
-      Filter high-performance turfs, boutique domes, and under-the-lights courts without refreshing
-      the page. Combine keywords like <strong>"Aurora 250000 evening"</strong> to surface the exact
-      vibe you are manifesting.
-    </p>
+    <div class="venues-intro__content">
+      <a class="venues-intro__back" href="{% url 'main:dashboard' %}" data-ajax-nav>
+        <span aria-hidden="true">←</span>
+        <span>Back to spotlight</span>
+      </a>
+      <span class="venues-intro__eyebrow">PitchPilot network</span>
+      <h1>Explore our immersive arena directory</h1>
+      <p>
+        Filter high-performance turfs, boutique domes, and under-the-lights courts without
+        refreshing the page. Combine keywords like <strong>"Aurora 250000 evening"</strong> to
+        surface the exact vibe you are manifesting.
+      </p>
+    </div>
+    <div class="venues-intro__art" aria-hidden="true">
+      <div class="venues-intro__planet venues-intro__planet--one"></div>
+      <div class="venues-intro__planet venues-intro__planet--two"></div>
+      <div class="venues-intro__ring venues-intro__ring--wide"></div>
+      <div class="venues-intro__ring venues-intro__ring--tight"></div>
+    </div>
   </div>
 
   <div class="venues-toolbar" data-animate="fade-up">
@@ -32,13 +40,26 @@
         />
         <span class="venues-search__glow" aria-hidden="true"></span>
       </label>
+      <ul class="venues-search__tokens" data-venues-tokens aria-hidden="true"></ul>
       <p class="venues-search__hint">
         Every space-separated word becomes its own intent. Mix and match names, vibes, or budgets to
         curate your perfect match.
       </p>
     </form>
-    <div class="venues-toolbar__meta" data-venues-meta>
-      Showing <span data-venues-count>{{ venues|length }}</span> curated venues.
+    <div class="venues-toolbar__meta" data-venues-meta data-total="{{ venues|length }}">
+      <span class="venues-toolbar__meta-default" data-venues-meta-default>
+        Showing <span data-venues-count>{{ venues|length }}</span> curated venues.
+      </span>
+      <span
+        class="venues-toolbar__meta-filter"
+        data-venues-filter-label
+        aria-hidden="true"
+        aria-live="polite"
+      >
+        Matching <span data-venues-matched>{{ venues|length }}</span>
+        of <span data-venues-total>{{ venues|length }}</span> venues for
+        <span data-venues-query></span>.
+      </span>
     </div>
   </div>
 
