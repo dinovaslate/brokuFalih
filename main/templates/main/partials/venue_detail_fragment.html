@@ -36,13 +36,41 @@
       {% endif %}
     </div>
     <div class="venue-detail__summary" data-animate="fade-up">
-      <p class="venue-detail__price">
-        <span>Rate</span>
-        <strong>Rp {{ venue.price|floatformat:0|intcomma }}</strong>
-      </p>
-      <p class="venue-detail__description">
-        {{ venue.description|default:"This venue is ready to host your next unforgettable match." }}
-      </p>
+      <div class="venue-detail__summary-card">
+        <p class="venue-detail__price">
+          <span>Rate</span>
+          <strong>Rp {{ venue.price|floatformat:0|intcomma }}</strong>
+        </p>
+        <div class="venue-detail__stats">
+          <div class="venue-detail__rating" data-rating-display>
+            <span class="venue-detail__rating-label">Average rating</span>
+            {% if venue.average_rating %}
+              {% with rounded=venue.average_rating|floatformat:0 %}
+                <div class="star-rating star-rating--read-only" aria-hidden="true" data-rating-stars>
+                  {% for _ in "12345" %}
+                    <span class="star-rating__star{% if forloop.counter <= rounded %} is-active{% endif %}">★</span>
+                  {% endfor %}
+                </div>
+              {% endwith %}
+              <strong data-rating-average>{{ venue.average_rating|floatformat:1 }}</strong>
+            {% else %}
+              <div class="star-rating star-rating--read-only" aria-hidden="true" data-rating-stars>
+                {% for _ in "12345" %}
+                  <span class="star-rating__star">★</span>
+                {% endfor %}
+              </div>
+              <strong data-rating-average>Not yet rated</strong>
+            {% endif %}
+          </div>
+          <div class="venue-detail__reviews">
+            <span class="venue-detail__rating-label">Fan reviews</span>
+            <strong><span data-rating-count>{{ venue.rating_count|default:0 }}</span></strong>
+          </div>
+        </div>
+        <p class="venue-detail__description">
+          {{ venue.description|default:"This venue is ready to host your next unforgettable match." }}
+        </p>
+      </div>
       {% if venue.facility_list %}
         <div class="venue-detail__facilities">
           <h2>Included facilities</h2>
@@ -53,56 +81,38 @@
           </ul>
         </div>
       {% endif %}
-      <dl class="venue-detail__metrics">
-        <div>
-          <dt>Average rating</dt>
-          <dd data-rating-display>
-            {% if venue.average_rating %}
-              <span data-rating-average>{{ venue.average_rating|floatformat:1 }}</span>
-              <span aria-hidden="true">★</span>
-            {% else %}
-              <span data-rating-average>Not yet rated</span>
-            {% endif %}
-          </dd>
-        </div>
-        <div>
-          <dt>Fan reviews</dt>
-          <dd><span data-rating-count>{{ venue.rating_count|default:0 }}</span></dd>
-        </div>
-      </dl>
+      <section class="booking-panel" data-animate="fade-up">
+        <h2>Book this venue</h2>
+        <p>Choose your schedule and confirm the investment before securing the pitch.</p>
+        <form
+          class="booking-form"
+          data-booking-form
+          method="post"
+          action="{% url 'main:venue_booking_create_api' venue.id %}"
+        >
+          {% csrf_token %}
+          <div class="booking-form__grid">
+            <label>
+              <span>Start date</span>
+              <input type="date" name="start_date" required />
+            </label>
+            <label>
+              <span>End date</span>
+              <input type="date" name="end_date" required />
+            </label>
+          </div>
+          <label class="booking-form__notes">
+            <span>Notes for the venue</span>
+            <textarea name="notes" rows="3" placeholder="Optional instructions for the venue manager"></textarea>
+          </label>
+          <p class="form-error" data-booking-error hidden></p>
+          <button type="submit" class="button button--primary">Review booking</button>
+        </form>
+      </section>
     </div>
   </div>
 
   <div class="venue-detail__actions">
-    <section class="booking-panel" data-animate="fade-up">
-      <h2>Book this venue</h2>
-      <p>Choose your schedule and confirm the investment before securing the pitch.</p>
-      <form
-        class="booking-form"
-        data-booking-form
-        method="post"
-        action="{% url 'main:venue_booking_create_api' venue.id %}"
-      >
-        {% csrf_token %}
-        <div class="booking-form__grid">
-          <label>
-            <span>Start date</span>
-            <input type="date" name="start_date" required />
-          </label>
-          <label>
-            <span>End date</span>
-            <input type="date" name="end_date" required />
-          </label>
-        </div>
-        <label class="booking-form__notes">
-          <span>Notes for the venue</span>
-          <textarea name="notes" rows="3" placeholder="Optional instructions for the venue manager"></textarea>
-        </label>
-        <p class="form-error" data-booking-error hidden></p>
-        <button type="submit" class="button button--primary">Review booking</button>
-      </form>
-    </section>
-
     <section class="comment-section" data-animate="fade-up">
       <header class="comment-section__header">
         <div>
@@ -126,13 +136,30 @@
       >
         {% csrf_token %}
         <div class="comment-form__fields">
-          <label>
+          <label class="comment-form__rating">
             <span>Rating</span>
-            <select name="rating" required>
-              {% for value in "12345" %}
-                <option value="{{ value }}">{{ value }}</option>
-              {% endfor %}
-            </select>
+            <div class="star-rating" data-star-rating data-default-value="4">
+              <input
+                type="hidden"
+                name="rating"
+                value="4"
+                required
+                data-star-input
+              />
+              <div class="star-rating__stars" role="radiogroup" aria-label="Select a rating">
+                {% for value in "12345" %}
+                  <button
+                    type="button"
+                    class="star-rating__star"
+                    data-star-button="{{ value }}"
+                    aria-label="{{ value }} star{% if value != '1' %}s{% endif %}"
+                  >
+                    ★
+                  </button>
+                {% endfor %}
+              </div>
+              <span class="star-rating__value" data-star-label>4 / 5</span>
+            </div>
           </label>
           <label class="comment-form__message">
             <span>Comment</span>
@@ -162,7 +189,14 @@
                   {{ entry.date|date:"F j, Y" }}
                 </time>
               </div>
-              <span class="comment-card__rating">{{ entry.rating }}/5</span>
+              <div class="comment-card__rating" aria-label="Rated {{ entry.rating }} out of 5">
+                <div class="star-rating star-rating--compact" aria-hidden="true">
+                  {% for _ in "12345" %}
+                    <span class="star-rating__star{% if forloop.counter <= entry.rating %} is-active{% endif %}">★</span>
+                  {% endfor %}
+                </div>
+                <span class="comment-card__rating-value">{{ entry.rating }}/5</span>
+              </div>
             </div>
             <p class="comment-card__body">{{ entry.comment }}</p>
           </li>
@@ -218,11 +252,28 @@
         {% csrf_token %}
         <label>
           <span>Rating</span>
-          <select name="rating" required>
-            {% for value in "12345" %}
-              <option value="{{ value }}">{{ value }}</option>
-            {% endfor %}
-          </select>
+          <div class="star-rating" data-star-rating data-default-value="4">
+            <input
+              type="hidden"
+              name="rating"
+              value="4"
+              required
+              data-star-input
+            />
+            <div class="star-rating__stars" role="radiogroup" aria-label="Update rating">
+              {% for value in "12345" %}
+                <button
+                  type="button"
+                  class="star-rating__star"
+                  data-star-button="{{ value }}"
+                  aria-label="{{ value }} star{% if value != '1' %}s{% endif %}"
+                >
+                  ★
+                </button>
+              {% endfor %}
+            </div>
+            <span class="star-rating__value" data-star-label>4 / 5</span>
+          </div>
         </label>
         <label>
           <span>Comment</span>
