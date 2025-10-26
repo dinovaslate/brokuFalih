@@ -225,6 +225,7 @@ def _serialize_booking(booking: Booking) -> dict[str, object]:
             "id": booking.venue_id,
             "title": booking.venue.title,
             "price": booking.venue.price,
+            "location": booking.venue.location,
         },
         "has_been_paid": booking.has_been_paid,
         "date_paid": booking.date_paid.isoformat() if booking.date_paid else None,
@@ -521,6 +522,89 @@ def venues_page(request: HttpRequest) -> HttpResponse:
         "main/partials/venues_fragment.html"
         if _is_ajax(request)
         else "main/venues.html"
+    )
+    return render(request, template, context)
+
+
+@login_required
+def bookings_page(request: HttpRequest) -> HttpResponse:
+    if _user_is_staff(request.user):
+        return redirect("main:admin_panel")
+
+    ensure_sample_data()
+
+    bookings_queryset = (
+        Booking.objects.select_related("venue", "date")
+        .filter(user=request.user)
+        .order_by("-date__start_date", "-created_at")
+    )
+    bookings = list(bookings_queryset)
+
+    today = timezone.localdate()
+    total_spend = 0
+    upcoming_count = 0
+    paid_count = 0
+
+    for booking in bookings:
+        start_date = booking.date.start_date
+        end_date = booking.date.end_date
+        duration_days = max((end_date - start_date).days + 1, 1)
+        booking.duration_days = duration_days
+        booking.duration_label = (
+            "1 day" if duration_days == 1 else f"{duration_days} days"
+        )
+        booking.total_value = (booking.venue.price or 0) * duration_days
+        booking.is_upcoming = start_date >= today
+        booking.search_blob = " ".join(
+            str(piece).strip()
+            for piece in [
+                booking.venue.title,
+                booking.venue.location,
+                booking.notes,
+                start_date.isoformat(),
+                end_date.isoformat(),
+                "paid" if booking.has_been_paid else "pending",
+            ]
+            if piece
+        ).lower()
+        booking.status_label = (
+            "Paid in full" if booking.has_been_paid else "Awaiting payment"
+        )
+        booking.status_key = "paid" if booking.has_been_paid else "pending"
+
+        if booking.has_been_paid:
+            paid_count += 1
+            total_spend += booking.total_value
+        if start_date >= today:
+            upcoming_count += 1
+
+    next_booking = None
+    if bookings:
+        upcoming_sorted = sorted(
+            (b for b in bookings if b.date.start_date >= today),
+            key=lambda item: (item.date.start_date, item.date.end_date),
+        )
+        next_booking = upcoming_sorted[0] if upcoming_sorted else None
+
+    total_count = len(bookings)
+    stats = {
+        "total": total_count,
+        "upcoming": upcoming_count,
+        "paid": paid_count,
+        "pending": total_count - paid_count,
+        "lifetime_spend": total_spend,
+    }
+
+    context = {
+        "bookings": bookings,
+        "stats": stats,
+        "next_booking": next_booking,
+    }
+
+    template = (
+        "main/partials/bookings_fragment.html"
+        if _is_ajax(request)
+        else "main/bookings.html"
     )
     return render(request, template, context)
 

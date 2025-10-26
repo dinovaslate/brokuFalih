@@ -236,6 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
     attachAjaxLinks(fragment);
     attachScrollLinks(fragment);
     initVenuesPage(fragment);
+    initBookingsPage(fragment);
     initVenueDetailPage(fragment);
     applyPageMetadata(fragment);
   };
@@ -548,6 +549,118 @@ document.addEventListener("DOMContentLoaded", () => {
       page.addEventListener("transitionend", handleTransitionEnd);
     }
 
+    page.dataset.initialised = "true";
+  };
+
+  const initBookingsPage = (root = document) => {
+    const page =
+      root.matches?.(".bookings-page") === true
+        ? root
+        : root.querySelector?.(".bookings-page");
+
+    if (!page || page.dataset.initialised === "true") {
+      return;
+    }
+
+    const searchInput = page.querySelector("[data-bookings-input]");
+    const rows = Array.from(page.querySelectorAll("[data-booking-row]"));
+    const emptyState = page.querySelector("[data-bookings-empty]");
+    const meta = page.querySelector("[data-bookings-meta]");
+    const defaultLabel = meta?.querySelector("[data-bookings-meta-default]");
+    const filterLabel = meta?.querySelector("[data-bookings-meta-filter]");
+    const countEl = meta?.querySelector("[data-bookings-count]");
+    const matchedEl = meta?.querySelector("[data-bookings-matched]");
+    const totalEl = meta?.querySelector("[data-bookings-total]");
+    const queryEl = meta?.querySelector("[data-bookings-query]");
+    const total = Number(meta?.dataset.total || rows.length);
+
+    if (totalEl) {
+      totalEl.textContent = String(total);
+    }
+
+    const animateRows = (visibleRows) => {
+      if (!visibleRows.length) {
+        return;
+      }
+
+      if (typeof anime !== "function") {
+        visibleRows.forEach((row) => {
+          row.style.opacity = "";
+          row.style.transform = "";
+        });
+        return;
+      }
+
+      anime({
+        targets: visibleRows,
+        opacity: [0, 1],
+        translateY: [16, 0],
+        delay: anime.stagger(70),
+        duration: 520,
+        easing: "easeOutQuad",
+        begin: () => {
+          visibleRows.forEach((row) => {
+            row.style.opacity = 0;
+            row.style.transform = "translateY(16px)";
+          });
+        },
+        complete: () => {
+          visibleRows.forEach((row) => {
+            row.style.opacity = "";
+            row.style.transform = "";
+          });
+        },
+      });
+    };
+
+    const applyFilter = ({ animate = false } = {}) => {
+      const rawQuery = (searchInput?.value || "").trim();
+      const query = rawQuery.toLowerCase();
+      let visible = 0;
+      const visibleRows = [];
+
+      rows.forEach((row) => {
+        const haystack = row.dataset.searchText || "";
+        const matches = !query || haystack.includes(query);
+        row.hidden = !matches;
+        if (matches) {
+          visible += 1;
+          visibleRows.push(row);
+        }
+      });
+
+      if (countEl) {
+        countEl.textContent = String(visible);
+      }
+      if (matchedEl) {
+        matchedEl.textContent = String(visible);
+      }
+      if (defaultLabel) {
+        defaultLabel.hidden = Boolean(rawQuery);
+      }
+      if (filterLabel) {
+        filterLabel.hidden = !rawQuery;
+        filterLabel.setAttribute("aria-hidden", rawQuery ? "false" : "true");
+      }
+      if (queryEl) {
+        queryEl.textContent = rawQuery;
+      }
+      if (emptyState) {
+        emptyState.hidden = visible > 0;
+      }
+
+      if (animate) {
+        animateRows(visibleRows);
+      }
+    };
+
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        applyFilter();
+      });
+    }
+
+    applyFilter({ animate: true });
     page.dataset.initialised = "true";
   };
 
@@ -1300,5 +1413,6 @@ document.addEventListener("DOMContentLoaded", () => {
   attachAjaxLinks(document);
   attachScrollLinks(document);
   initVenuesPage(document);
+  initBookingsPage(document);
   initVenueDetailPage(document);
 });

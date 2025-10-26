@@ -35,16 +35,38 @@
         </button>
         <ul class="floating-nav__links">
           <li>
-            <a class="floating-nav__link" href="{% url 'main:dashboard' %}" data-scroll-home>
+            <a
+              class="floating-nav__link"
+              href="{% url 'main:dashboard' %}"
+              data-scroll-home
+              data-nav-target="home"
+            >
               Home
             </a>
           </li>
           <li>
-            <a class="floating-nav__link" href="{% url 'main:venues_page' %}" data-ajax-nav>
+            <a
+              class="floating-nav__link"
+              href="{% url 'main:venues_page' %}"
+              data-ajax-nav
+              data-nav-target="venues"
+            >
               Venues
             </a>
           </li>
-          <li><a class="floating-nav__link" href="#profile">Profile</a></li>
+          <li>
+            <a
+              class="floating-nav__link"
+              href="{% url 'main:bookings_page' %}"
+              data-ajax-nav
+              data-nav-target="bookings"
+            >
+              Bookings
+            </a>
+          </li>
+          <li>
+            <a class="floating-nav__link" href="#profile" data-nav-target="profile">Profile</a>
+          </li>
         </ul>
       </div>
     </nav>
@@ -67,6 +89,9 @@
               </li>
               <li>
                 <a href="{% url 'main:venues_page' %}" data-ajax-nav>Venues</a>
+              </li>
+              <li>
+                <a href="{% url 'main:bookings_page' %}" data-ajax-nav>Bookings</a>
               </li>
               <li><a href="#profile">Profile</a></li>
             </ul>
