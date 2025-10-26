@@ -1,0 +1,291 @@
+{% load humanize %}
+<section
+  class="venue-detail page-fragment"
+  data-page-fragment
+  data-page="venue-detail"
+  data-page-title="{{ venue.title }}"
+  data-venue-id="{{ venue.id }}"
+  data-price="{{ venue.price }}"
+  data-average-rating="{{ venue.average_rating|default_if_none:'' }}"
+  data-rating-count="{{ venue.rating_count|default_if_none:0 }}"
+  data-comments='{{ comments_json|escapejs }}'
+  data-comment-update-template="{{ comment_update_template }}"
+  data-comment-delete-template="{{ comment_delete_template }}"
+>
+  <div class="venue-detail__intro" data-animate="fade-up">
+    <a class="venue-detail__back" href="{% url 'main:venues_page' %}" data-ajax-nav>
+      ← Back to all venues
+    </a>
+    <div class="venue-detail__title">
+      <h1>{{ venue.title }}</h1>
+      {% if venue.type %}
+        <span class="venue-detail__badge">{{ venue.type }}</span>
+      {% endif %}
+    </div>
+    <p class="venue-detail__location">📍 {{ venue.location|default:"Location to be announced" }}</p>
+  </div>
+
+  <div class="venue-detail__grid">
+    <div class="venue-detail__media" data-animate="fade-up">
+      {% if venue.image_url %}
+        <img src="{{ venue.image_url }}" alt="{{ venue.title }} venue" />
+      {% else %}
+        <div class="venue-detail__media-placeholder">
+          <span>{{ venue.title|slice:":1"|default:"P" }}</span>
+        </div>
+      {% endif %}
+    </div>
+    <div class="venue-detail__summary" data-animate="fade-up">
+      <div class="venue-detail__price-card">
+        <p class="venue-detail__price">
+          <span>Rate per night</span>
+          <strong>Rp {{ venue.price|floatformat:0|intcomma }}</strong>
+        </p>
+        <p class="venue-detail__description">
+          {{ venue.description|default:"This venue is ready to host your next unforgettable match." }}
+        </p>
+      </div>
+      {% if venue.facility_list %}
+        <div class="venue-detail__facilities">
+          <h2>Included facilities</h2>
+          <ul>
+            {% for facility in venue.facility_list %}
+              <li>{{ facility }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+      <dl class="venue-detail__metrics">
+        <div>
+          <dt>Average rating</dt>
+          <dd class="rating-display" data-rating-display>
+            <span class="rating-display__value" data-rating-value>
+              {% if venue.average_rating %}
+                {{ venue.average_rating|floatformat:-1 }}
+              {% else %}
+                Not yet rated
+              {% endif %}
+            </span>
+            <div
+              class="rating-stars"
+              data-rating-stars
+              aria-hidden="true"
+              style="--rating: {{ venue.average_rating|default:0 }}"
+            ></div>
+          </dd>
+        </div>
+        <div>
+          <dt>Fan reviews</dt>
+          <dd><span data-rating-count>{{ venue.rating_count|default:0 }}</span></dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <div class="venue-detail__actions" data-animate="fade-up">
+    <section class="booking-panel">
+      <header class="booking-panel__header">
+        <div>
+          <h2>Reserve this arena</h2>
+          <p>Pick your match days and review the subtotal before confirming.</p>
+        </div>
+        <div class="booking-panel__badge">
+          <span>Nightly rate</span>
+          <strong>Rp {{ venue.price|floatformat:0|intcomma }}</strong>
+        </div>
+      </header>
+      <form
+        class="booking-form"
+        data-booking-form
+        method="post"
+        action="{% url 'main:venue_booking_create_api' venue.id %}"
+      >
+        {% csrf_token %}
+        <div class="booking-form__grid">
+          <label>
+            <span>Start date</span>
+            <input type="date" name="start_date" required />
+          </label>
+          <label>
+            <span>End date</span>
+            <input type="date" name="end_date" required />
+          </label>
+        </div>
+        <label class="booking-form__notes">
+          <span>Notes for the venue</span>
+          <textarea name="notes" rows="3" placeholder="Optional instructions for the venue manager"></textarea>
+        </label>
+        <p class="form-error" data-booking-error hidden></p>
+        <button type="submit" class="button button--primary">Review booking</button>
+      </form>
+    </section>
+  </div>
+
+  <section class="comment-section" data-animate="fade-up">
+      <header class="comment-section__header">
+        <div>
+          <h2>Player discussions</h2>
+          <p>Share your experience or read what other players are saying.</p>
+        </div>
+        <span class="comment-section__count" data-comment-count>
+          {% if comment_objects %}
+            {{ comment_objects|length }}
+            {% if comment_objects|length == 1 %}comment{% else %}comments{% endif %}
+          {% else %}
+            No comments yet
+          {% endif %}
+        </span>
+      </header>
+      <form
+        class="comment-form"
+        method="post"
+        data-comment-form
+        action="{% url 'main:venue_comments_create_api' venue.id %}"
+      >
+        {% csrf_token %}
+        <div class="comment-form__fields">
+          <fieldset class="comment-form__rating" data-star-rating-root>
+            <legend class="comment-form__label">Rating</legend>
+            <div class="star-rating" data-star-rating role="radiogroup">
+              {% for value in "54321" %}
+                <input
+                  type="radio"
+                  id="comment-rating-create-{{ value }}"
+                  name="rating"
+                  value="{{ value }}"
+                  {% if value == "5" %}checked{% endif %}
+                  required
+                />
+                <label for="comment-rating-create-{{ value }}" aria-label="{{ value }} out of 5 stars"></label>
+              {% endfor %}
+            </div>
+            <span class="comment-form__rating-value" data-star-rating-output>5 / 5</span>
+          </fieldset>
+          <label class="comment-form__message">
+            <span class="comment-form__label">Comment</span>
+            <textarea
+              name="comment"
+              rows="4"
+              placeholder="How was the turf, the lights, the energy?"
+              required
+            ></textarea>
+          </label>
+        </div>
+        <p class="form-error" data-comment-error hidden></p>
+        <button type="submit" class="button button--secondary">Post comment</button>
+      </form>
+      <ul class="comment-list" data-comment-list>
+        {% for entry in comment_objects %}
+          <li
+            class="comment-card"
+            data-comment-id="{{ entry.id }}"
+            data-comment-rating="{{ entry.rating }}"
+            data-comment-text="{{ entry.comment|escape }}"
+            data-comment-date="{{ entry.date|date:'c' }}"
+            data-comment-user="{{ entry.user.get_full_name|default:entry.user.get_username|escape }}"
+            data-comment-can-edit="{% if entry.user_id == request.user.id %}true{% else %}false{% endif %}"
+            data-comment-can-delete="{% if entry.user_id == request.user.id or request.user.is_staff %}true{% else %}false{% endif %}"
+          >
+            <div class="comment-card__header">
+              <div class="comment-card__meta">
+                <span class="comment-card__author">
+                  {{ entry.user.get_full_name|default:entry.user.get_username }}
+                </span>
+                <time
+                  class="comment-card__date"
+                  datetime="{{ entry.date|date:'Y-m-d' }}"
+                >
+                  {{ entry.date|date:"F j, Y" }}
+                </time>
+              </div>
+              <div class="comment-card__rating">
+                <div
+                  class="rating-stars rating-stars--sm"
+                  aria-hidden="true"
+                  style="--rating: {{ entry.rating|default:0 }}"
+                ></div>
+                <span class="comment-card__rating-value">{{ entry.rating|floatformat:-1 }} / 5</span>
+              </div>
+            </div>
+            <p class="comment-card__body">{{ entry.comment }}</p>
+          </li>
+        {% endfor %}
+      </ul>
+      <div class="comment-empty" data-comment-empty {% if comment_objects %}hidden{% endif %}>
+        <span aria-hidden="true">💬</span>
+        <p>Be the first to document the atmosphere of this arena.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" data-booking-modal hidden>
+    <div class="modal__dialog">
+      <header class="modal__header">
+        <h3>Confirm your booking</h3>
+        <button type="button" class="modal__close" data-modal-close aria-label="Close">×</button>
+      </header>
+      <div class="modal__body">
+        <p>Review the investment before finalising your booking.</p>
+        <dl class="modal-summary">
+          <div>
+            <dt>Schedule</dt>
+            <dd data-booking-summary="dates"></dd>
+          </div>
+          <div>
+            <dt>Total nights</dt>
+            <dd data-booking-summary="nights"></dd>
+          </div>
+          <div>
+            <dt>Subtotal</dt>
+            <dd data-booking-summary="subtotal"></dd>
+          </div>
+        </dl>
+        <p class="form-error" data-booking-modal-error hidden></p>
+      </div>
+      <footer class="modal__footer">
+        <button type="button" class="button" data-modal-close>Cancel</button>
+        <button type="button" class="button button--primary" data-booking-confirm>
+          Create booking
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <div class="modal" data-comment-modal hidden>
+    <div class="modal__dialog">
+      <header class="modal__header">
+        <h3>Edit comment</h3>
+        <button type="button" class="modal__close" data-modal-close aria-label="Close">×</button>
+      </header>
+      <form class="modal__body" method="post" data-comment-edit-form>
+        {% csrf_token %}
+        <fieldset class="comment-form__rating" data-star-rating-root>
+          <legend class="comment-form__label">Rating</legend>
+          <div class="star-rating" data-star-rating role="radiogroup">
+            {% for value in "54321" %}
+              <input
+                type="radio"
+                id="comment-rating-edit-{{ value }}"
+                name="rating"
+                value="{{ value }}"
+                {% if value == "5" %}checked{% endif %}
+                required
+              />
+              <label for="comment-rating-edit-{{ value }}" aria-label="{{ value }} out of 5 stars"></label>
+            {% endfor %}
+          </div>
+          <span class="comment-form__rating-value" data-star-rating-output>5 / 5</span>
+        </fieldset>
+        <label>
+          <span class="comment-form__label">Comment</span>
+          <textarea name="comment" rows="4" required></textarea>
+        </label>
+        <p class="form-error" data-comment-modal-error hidden></p>
+      </form>
+      <footer class="modal__footer">
+        <button type="button" class="button" data-modal-close>Cancel</button>
+        <button type="button" class="button button--primary" data-comment-save>Save changes</button>
+      </footer>
+    </div>
+  </div>
+</section>

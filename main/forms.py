@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
-from .models import Booking, BookingDate, Venue
+from .models import Booking, BookingDate, Comment, Venue
 
 User = get_user_model()
 
@@ -207,3 +207,60 @@ class BookingForm(forms.ModelForm):
             booking.date = booking_date
 
         return booking
+
+
+class CommentForm(forms.ModelForm):
+    rating = forms.ChoiceField(
+        choices=[(str(value), str(value)) for value in range(1, 6)],
+        widget=forms.Select(),
+    )
+    comment = forms.CharField(
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "placeholder": "Share your experience with this venue…",
+            }
+        )
+    )
+
+    class Meta:
+        model = Comment
+        fields = ["rating", "comment"]
+
+    def clean_rating(self) -> int:
+        rating = self.cleaned_data.get("rating")
+        try:
+            rating_value = int(rating)
+        except (TypeError, ValueError):
+            raise forms.ValidationError("Choose a rating between 1 and 5.")
+        if rating_value < 1 or rating_value > 5:
+            raise forms.ValidationError("Choose a rating between 1 and 5.")
+        return rating_value
+
+
+class PublicBookingForm(forms.Form):
+    start_date = forms.DateField(
+        input_formats=["%Y-%m-%d"],
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    end_date = forms.DateField(
+        input_formats=["%Y-%m-%d"],
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "placeholder": "Add anything the venue manager should know…",
+            }
+        ),
+    )
+
+    def clean(self) -> dict[str, object]:
+        cleaned_data = super().clean()
+        start = cleaned_data.get("start_date")
+        end = cleaned_data.get("end_date")
+        if start and end and end < start:
+            raise forms.ValidationError("End date cannot be before the start date.")
+        return cleaned_data
