@@ -1,0 +1,239 @@
+{% load humanize %}
+<section
+  class="venue-detail page-fragment"
+  data-page-fragment
+  data-page="venue-detail"
+  data-page-title="{{ venue.title }}"
+  data-venue-id="{{ venue.id }}"
+  data-price="{{ venue.price }}"
+  data-average-rating="{{ venue.average_rating|default_if_none:'' }}"
+  data-rating-count="{{ venue.rating_count|default_if_none:0 }}"
+  data-comments='{{ comments_json|escapejs }}'
+  data-comment-update-template="{{ comment_update_template }}"
+  data-comment-delete-template="{{ comment_delete_template }}"
+>
+  <div class="venue-detail__intro" data-animate="fade-up">
+    <a class="venue-detail__back" href="{% url 'main:venues_page' %}" data-ajax-nav>
+      ← Back to all venues
+    </a>
+    <div class="venue-detail__title">
+      <h1>{{ venue.title }}</h1>
+      {% if venue.type %}
+        <span class="venue-detail__badge">{{ venue.type }}</span>
+      {% endif %}
+    </div>
+    <p class="venue-detail__location">📍 {{ venue.location|default:"Location to be announced" }}</p>
+  </div>
+
+  <div class="venue-detail__grid">
+    <div class="venue-detail__media" data-animate="fade-up">
+      {% if venue.image_url %}
+        <img src="{{ venue.image_url }}" alt="{{ venue.title }} venue" />
+      {% else %}
+        <div class="venue-detail__media-placeholder">
+          <span>{{ venue.title|slice:":1"|default:"P" }}</span>
+        </div>
+      {% endif %}
+    </div>
+    <div class="venue-detail__summary" data-animate="fade-up">
+      <p class="venue-detail__price">
+        <span>Rate</span>
+        <strong>Rp {{ venue.price|floatformat:0|intcomma }}</strong>
+      </p>
+      <p class="venue-detail__description">
+        {{ venue.description|default:"This venue is ready to host your next unforgettable match." }}
+      </p>
+      {% if venue.facility_list %}
+        <div class="venue-detail__facilities">
+          <h2>Included facilities</h2>
+          <ul>
+            {% for facility in venue.facility_list %}
+              <li>{{ facility }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+      <dl class="venue-detail__metrics">
+        <div>
+          <dt>Average rating</dt>
+          <dd data-rating-display>
+            {% if venue.average_rating %}
+              <span data-rating-average>{{ venue.average_rating|floatformat:1 }}</span>
+              <span aria-hidden="true">★</span>
+            {% else %}
+              <span data-rating-average>Not yet rated</span>
+            {% endif %}
+          </dd>
+        </div>
+        <div>
+          <dt>Fan reviews</dt>
+          <dd><span data-rating-count>{{ venue.rating_count|default:0 }}</span></dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <div class="venue-detail__actions">
+    <section class="booking-panel" data-animate="fade-up">
+      <h2>Book this venue</h2>
+      <p>Choose your schedule and confirm the investment before securing the pitch.</p>
+      <form
+        class="booking-form"
+        data-booking-form
+        method="post"
+        action="{% url 'main:venue_booking_create_api' venue.id %}"
+      >
+        {% csrf_token %}
+        <div class="booking-form__grid">
+          <label>
+            <span>Start date</span>
+            <input type="date" name="start_date" required />
+          </label>
+          <label>
+            <span>End date</span>
+            <input type="date" name="end_date" required />
+          </label>
+        </div>
+        <label class="booking-form__notes">
+          <span>Notes for the venue</span>
+          <textarea name="notes" rows="3" placeholder="Optional instructions for the venue manager"></textarea>
+        </label>
+        <p class="form-error" data-booking-error hidden></p>
+        <button type="submit" class="button button--primary">Review booking</button>
+      </form>
+    </section>
+
+    <section class="comment-section" data-animate="fade-up">
+      <header class="comment-section__header">
+        <div>
+          <h2>Player discussions</h2>
+          <p>Share your experience or read what other players are saying.</p>
+        </div>
+        <span class="comment-section__count" data-comment-count>
+          {% if comment_objects %}
+            {{ comment_objects|length }}
+            {% if comment_objects|length == 1 %}comment{% else %}comments{% endif %}
+          {% else %}
+            No comments yet
+          {% endif %}
+        </span>
+      </header>
+      <form
+        class="comment-form"
+        method="post"
+        data-comment-form
+        action="{% url 'main:venue_comments_create_api' venue.id %}"
+      >
+        {% csrf_token %}
+        <div class="comment-form__fields">
+          <label>
+            <span>Rating</span>
+            <select name="rating" required>
+              {% for value in "12345" %}
+                <option value="{{ value }}">{{ value }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="comment-form__message">
+            <span>Comment</span>
+            <textarea
+              name="comment"
+              rows="4"
+              placeholder="How was the turf, the lights, the energy?"
+              required
+            ></textarea>
+          </label>
+        </div>
+        <p class="form-error" data-comment-error hidden></p>
+        <button type="submit" class="button button--secondary">Post comment</button>
+      </form>
+      <ul class="comment-list" data-comment-list>
+        {% for entry in comment_objects %}
+          <li class="comment-card" data-comment-id="{{ entry.id }}">
+            <div class="comment-card__header">
+              <div class="comment-card__meta">
+                <span class="comment-card__author">
+                  {{ entry.user.get_full_name|default:entry.user.get_username }}
+                </span>
+                <time
+                  class="comment-card__date"
+                  datetime="{{ entry.date|date:'Y-m-d' }}"
+                >
+                  {{ entry.date|date:"F j, Y" }}
+                </time>
+              </div>
+              <span class="comment-card__rating">{{ entry.rating }}/5</span>
+            </div>
+            <p class="comment-card__body">{{ entry.comment }}</p>
+          </li>
+        {% endfor %}
+      </ul>
+      <div class="comment-empty" data-comment-empty {% if comment_objects %}hidden{% endif %}>
+        <span aria-hidden="true">💬</span>
+        <p>Be the first to document the atmosphere of this arena.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" data-booking-modal hidden>
+    <div class="modal__dialog">
+      <header class="modal__header">
+        <h3>Confirm your booking</h3>
+        <button type="button" class="modal__close" data-modal-close aria-label="Close">×</button>
+      </header>
+      <div class="modal__body">
+        <p>Review the investment before finalising your booking.</p>
+        <dl class="modal-summary">
+          <div>
+            <dt>Schedule</dt>
+            <dd data-booking-summary="dates"></dd>
+          </div>
+          <div>
+            <dt>Total nights</dt>
+            <dd data-booking-summary="nights"></dd>
+          </div>
+          <div>
+            <dt>Subtotal</dt>
+            <dd data-booking-summary="subtotal"></dd>
+          </div>
+        </dl>
+        <p class="form-error" data-booking-modal-error hidden></p>
+      </div>
+      <footer class="modal__footer">
+        <button type="button" class="button" data-modal-close>Cancel</button>
+        <button type="button" class="button button--primary" data-booking-confirm>
+          Create booking
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <div class="modal" data-comment-modal hidden>
+    <div class="modal__dialog">
+      <header class="modal__header">
+        <h3>Edit comment</h3>
+        <button type="button" class="modal__close" data-modal-close aria-label="Close">×</button>
+      </header>
+      <form class="modal__body" method="post" data-comment-edit-form>
+        {% csrf_token %}
+        <label>
+          <span>Rating</span>
+          <select name="rating" required>
+            {% for value in "12345" %}
+              <option value="{{ value }}">{{ value }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>Comment</span>
+          <textarea name="comment" rows="4" required></textarea>
+        </label>
+        <p class="form-error" data-comment-modal-error hidden></p>
+      </form>
+      <footer class="modal__footer">
+        <button type="button" class="button" data-modal-close>Cancel</button>
+        <button type="button" class="button button--primary" data-comment-save>Save changes</button>
+      </footer>
+    </div>
+  </div>
+</section>

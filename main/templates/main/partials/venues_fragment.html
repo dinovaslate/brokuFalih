@@ -65,10 +65,12 @@
 
   <div class="venues-grid" data-venues-grid>
     {% for venue in venues %}
-      <article
+      <a
         class="venue-card"
+        href="{% url 'main:venue_detail' venue.id %}"
         data-animate="fade-up"
         data-search-text="{{ venue.search_blob|escape }}"
+        data-ajax-nav
       >
         <div class="venue-card__media">
           {% if venue.image_url %}
@@ -116,7 +118,7 @@
             </ul>
           {% endif %}
         </div>
-      </article>
+      </a>
     {% empty %}
       <p class="venues-empty">Venues will manifest here shortly.</p>
     {% endfor %}

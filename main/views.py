@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
@@ -20,8 +21,14 @@ from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from .forms import BookingForm, SignupForm, VenueForm
-from .models import Booking, Venue
+from .forms import (
+    BookingForm,
+    CommentForm,
+    PublicBookingForm,
+    SignupForm,
+    VenueForm,
+)
+from .models import Booking, BookingDate, Comment, CommentVenue, Venue
 from .sample_data import ensure_sample_data
 
 
@@ -140,6 +147,59 @@ def _base_venue_queryset():
         average_rating=Avg("comments__rating"),
         rating_count=Count("comments", distinct=True),
     )
+
+
+def _normalize_facilities(raw_facilities) -> list[str]:
+    facility_list: list[str] = []
+
+    if isinstance(raw_facilities, (list, tuple, set)):
+        for item in raw_facilities:
+            text = str(item).strip()
+            if text:
+                facility_list.append(text)
+    elif isinstance(raw_facilities, str):
+        segments = re.split(r"[,\n]+", raw_facilities.replace("\r", "\n"))
+        for segment in segments:
+            text = segment.strip()
+            if text:
+                facility_list.append(text)
+    elif raw_facilities:
+        segments = re.split(r"[,\n]+", str(raw_facilities).replace("\r", "\n"))
+        for segment in segments:
+            text = segment.strip()
+            if text:
+                facility_list.append(text)
+
+    return facility_list
+
+
+def _serialize_comment(
+    comment: Comment, *, request_user=None
+) -> dict[str, object]:
+    user_payload = _serialize_user(comment.user)
+    is_owner = bool(request_user and comment.user_id == request_user.id)
+    can_moderate = bool(request_user and _user_is_staff(request_user))
+    return {
+        "id": comment.id,
+        "rating": int(comment.rating),
+        "comment": comment.comment,
+        "date": comment.date.isoformat(),
+        "user": user_payload,
+        "can_edit": is_owner,
+        "can_delete": is_owner or can_moderate,
+    }
+
+
+def _comment_stats_for_venue(venue: Venue) -> dict[str, object]:
+    aggregate = venue.comments.aggregate(
+        average=Avg("rating"),
+        count=Count("id", distinct=True),
+    )
+    average_value = aggregate.get("average")
+    return {
+        "average_rating": float(average_value) if average_value is not None else None,
+        "count": int(aggregate.get("count") or 0),
+    }
 
 
 def _serialize_user(user) -> dict[str, object] | None:
@@ -433,26 +493,7 @@ def venues_page(request: HttpRequest) -> HttpResponse:
     venues_queryset = _base_venue_queryset().order_by("title")
     venues = [_serialize_venue(venue) for venue in venues_queryset]
     for venue in venues:
-        facilities = venue.get("facilities")
-        facility_list: list[str] = []
-
-        if isinstance(facilities, (list, tuple, set)):
-            for item in facilities:
-                text = str(item).strip()
-                if text:
-                    facility_list.append(text)
-        elif isinstance(facilities, str):
-            segments = re.split(r"[,\n]+", facilities.replace("\r", "\n"))
-            for segment in segments:
-                text = segment.strip()
-                if text:
-                    facility_list.append(text)
-        elif facilities:
-            segments = re.split(r"[,\n]+", str(facilities).replace("\r", "\n"))
-            for segment in segments:
-                text = segment.strip()
-                if text:
-                    facility_list.append(text)
+        facility_list = _normalize_facilities(venue.get("facilities"))
 
         facility_terms = " ".join(facility_list)
 
@@ -482,6 +523,141 @@ def venues_page(request: HttpRequest) -> HttpResponse:
         else "main/venues.html"
     )
     return render(request, template, context)
+
+
+@login_required
+@ensure_csrf_cookie
+def venue_detail_page(request: HttpRequest, pk: int) -> HttpResponse:
+    ensure_sample_data()
+
+    venue_obj = get_object_or_404(_base_venue_queryset(), pk=pk)
+    venue_data = _serialize_venue(venue_obj)
+    venue_data["facility_list"] = _normalize_facilities(venue_data.get("facilities"))
+
+    comments_queryset = (
+        Comment.objects.filter(venue_links__venue=venue_obj)
+        .select_related("user")
+        .order_by("-date", "-id")
+    )
+    comments_payload = [
+        _serialize_comment(comment, request_user=request.user)
+        for comment in comments_queryset
+    ]
+
+    comment_update_template = reverse(
+        "main:venue_comments_update_api",
+        args=[venue_obj.id, 0],
+    )
+    comment_delete_template = reverse(
+        "main:venue_comments_delete_api",
+        args=[venue_obj.id, 0],
+    )
+
+    context = {
+        "venue": venue_data,
+        "comments_json": json.dumps(comments_payload),
+        "comment_objects": comments_queryset,
+        "comment_update_template": comment_update_template,
+        "comment_delete_template": comment_delete_template,
+    }
+
+    template = (
+        "main/partials/venue_detail_fragment.html"
+        if _is_ajax(request)
+        else "main/venue_detail.html"
+    )
+    return render(request, template, context)
+
+
+@login_required
+@require_POST
+def venue_comments_create_api(request: HttpRequest, pk: int) -> JsonResponse:
+    venue = get_object_or_404(Venue, pk=pk)
+    form = CommentForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({"success": False, "errors": _json_errors(form)}, status=400)
+
+    comment = form.save(commit=False)
+    comment.user = request.user
+    comment.save()
+    CommentVenue.objects.create(comment=comment, venue=venue)
+
+    serialized = _serialize_comment(comment, request_user=request.user)
+    stats = _comment_stats_for_venue(venue)
+    return JsonResponse({"success": True, "data": serialized, "meta": stats})
+
+
+@login_required
+@require_POST
+def venue_comments_update_api(request: HttpRequest, pk: int, comment_pk: int) -> JsonResponse:
+    venue = get_object_or_404(Venue, pk=pk)
+    comment = get_object_or_404(
+        Comment.objects.select_related("user").filter(venue_links__venue=venue),
+        pk=comment_pk,
+    )
+
+    if comment.user_id != request.user.id and not _user_is_staff(request.user):
+        return JsonResponse(
+            {
+                "success": False,
+                "errors": ["You do not have permission to edit this comment."],
+            },
+            status=403,
+        )
+
+    form = CommentForm(request.POST, instance=comment)
+    if not form.is_valid():
+        return JsonResponse({"success": False, "errors": _json_errors(form)}, status=400)
+
+    updated_comment = form.save()
+    serialized = _serialize_comment(updated_comment, request_user=request.user)
+    stats = _comment_stats_for_venue(venue)
+    return JsonResponse({"success": True, "data": serialized, "meta": stats})
+
+
+@login_required
+@require_POST
+def venue_comments_delete_api(request: HttpRequest, pk: int, comment_pk: int) -> JsonResponse:
+    venue = get_object_or_404(Venue, pk=pk)
+    comment = get_object_or_404(
+        Comment.objects.select_related("user").filter(venue_links__venue=venue),
+        pk=comment_pk,
+    )
+
+    if comment.user_id != request.user.id and not _user_is_staff(request.user):
+        return JsonResponse(
+            {
+                "success": False,
+                "errors": ["You do not have permission to delete this comment."],
+            },
+            status=403,
+        )
+
+    comment.delete()
+    stats = _comment_stats_for_venue(venue)
+    return JsonResponse({"success": True, "meta": stats})
+
+
+@login_required
+@require_POST
+def venue_booking_create_api(request: HttpRequest, pk: int) -> JsonResponse:
+    venue = get_object_or_404(Venue, pk=pk)
+    form = PublicBookingForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({"success": False, "errors": _json_errors(form)}, status=400)
+
+    booking_date = BookingDate.objects.create(
+        start_date=form.cleaned_data["start_date"],
+        end_date=form.cleaned_data["end_date"],
+    )
+    booking = Booking.objects.create(
+        user=request.user,
+        venue=venue,
+        date=booking_date,
+        notes=form.cleaned_data.get("notes") or "",
+    )
+
+    return JsonResponse({"success": True, "data": _serialize_booking(booking)})
 
 
 @login_required

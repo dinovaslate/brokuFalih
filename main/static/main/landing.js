@@ -1,4 +1,89 @@
 const PAGE_FRAGMENT_SELECTOR = "[data-page-fragment]";
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+const formatCurrency = (value) => {
+  if (!Number.isFinite(Number(value))) {
+    return "Rp 0";
+  }
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(Number(value));
+};
+
+const parseISODate = (value) => {
+  if (!value || typeof value !== "string") {
+    return null;
+  }
+  const parts = value.split("-").map((segment) => Number(segment));
+  if (parts.length < 3) {
+    return null;
+  }
+  const [year, month, day] = parts;
+  if (!year || !month || !day) {
+    return null;
+  }
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const formatDate = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+};
+
+const formatDateRange = (start, end) => {
+  if (!(start instanceof Date) || Number.isNaN(start.getTime())) {
+    return "";
+  }
+  if (!(end instanceof Date) || Number.isNaN(end.getTime())) {
+    return formatDate(start);
+  }
+  if (start.getTime() === end.getTime()) {
+    return formatDate(start);
+  }
+  return `${formatDate(start)} – ${formatDate(end)}`;
+};
+
+const submitForm = async (url, formData) => {
+  const response = await fetch(url, {
+    method: "POST",
+    body: formData,
+    credentials: "same-origin",
+    headers: {
+      "X-Requested-With": "XMLHttpRequest",
+    },
+  });
+
+  let payload = {};
+  try {
+    payload = await response.json();
+  } catch (error) {
+    payload = {};
+  }
+
+  const success = payload && payload.success !== false && response.ok;
+  if (!success) {
+    const errors = Array.isArray(payload?.errors)
+      ? payload.errors
+      : payload?.errors
+      ? [payload.errors]
+      : ["We couldn't complete that request. Please try again."];
+    const error = new Error(errors[0] || "Request failed");
+    error.errors = errors;
+    error.payload = payload;
+    throw error;
+  }
+
+  return payload;
+};
 
 const createIntersectionObserver = () =>
   new IntersectionObserver(
@@ -151,6 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
     attachAjaxLinks(fragment);
     attachScrollLinks(fragment);
     initVenuesPage(fragment);
+    initVenueDetailPage(fragment);
     applyPageMetadata(fragment);
   };
 
@@ -465,6 +551,531 @@ document.addEventListener("DOMContentLoaded", () => {
     page.dataset.initialised = "true";
   };
 
+  const initVenueDetailPage = (root = document) => {
+    const page = root.matches?.(".venue-detail")
+      ? root
+      : root.querySelector?.(".venue-detail");
+    if (!page || page.dataset.initialised === "true") {
+      return;
+    }
+
+    const price = Number(page.dataset.price || 0) || 0;
+    const commentUpdateTemplate = page.dataset.commentUpdateTemplate || "";
+    const commentDeleteTemplate = page.dataset.commentDeleteTemplate || "";
+    const bookingForm = page.querySelector("[data-booking-form]");
+    const bookingError = page.querySelector("[data-booking-error]");
+    const bookingModal = page.querySelector("[data-booking-modal]");
+    const bookingModalError = bookingModal?.querySelector("[data-booking-modal-error]");
+    const bookingConfirmButton = bookingModal?.querySelector("[data-booking-confirm]");
+    const bookingSummary = bookingModal
+      ? {
+          dates: bookingModal.querySelector('[data-booking-summary="dates"]'),
+          nights: bookingModal.querySelector('[data-booking-summary="nights"]'),
+          subtotal: bookingModal.querySelector('[data-booking-summary="subtotal"]'),
+        }
+      : { dates: null, nights: null, subtotal: null };
+    const commentForm = page.querySelector("[data-comment-form]");
+    const commentError = page.querySelector("[data-comment-error]");
+    const commentList = page.querySelector("[data-comment-list]");
+    const commentEmptyState = page.querySelector("[data-comment-empty]");
+    const commentCountBadge = page.querySelector("[data-comment-count]");
+    const commentEditModal = page.querySelector("[data-comment-modal]");
+    const commentEditForm = commentEditModal?.querySelector("[data-comment-edit-form]");
+    const commentModalError = commentEditModal?.querySelector("[data-comment-modal-error]");
+    const commentSaveButton = commentEditModal?.querySelector("[data-comment-save]");
+    const ratingDisplay = page.querySelector("[data-rating-display]");
+    const ratingCountEl = page.querySelector("[data-rating-count]");
+
+    const parseComments = () => {
+      const raw = page.dataset.comments || "[]";
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) => {
+            const numericId = Number(item?.id);
+            const id = Number.isNaN(numericId) ? item?.id : numericId;
+            const ratingValue = Number(item?.rating);
+            return {
+              id,
+              rating: Number.isNaN(ratingValue) ? 0 : ratingValue,
+              comment: item?.comment || "",
+              date: item?.date || "",
+              user: item?.user || null,
+              canEdit: Boolean(item?.can_edit ?? item?.canEdit),
+              canDelete: Boolean(item?.can_delete ?? item?.canDelete),
+            };
+          });
+        }
+      } catch (error) {
+        return [];
+      }
+      return [];
+    };
+
+    let commentsState = parseComments();
+    const openModals = new Set();
+    let pendingBookingData = null;
+
+    const getCSRFTokenValue = () =>
+      page.querySelector("input[name='csrfmiddlewaretoken']")?.value || "";
+
+    const showMessage = (element, message) => {
+      if (!element) {
+        return;
+      }
+      if (!message) {
+        element.hidden = true;
+        element.textContent = "";
+      } else {
+        element.hidden = false;
+        element.textContent = message;
+      }
+    };
+
+    const replaceCommentId = (template, id) => {
+      if (!template) {
+        return "";
+      }
+      return template.replace(/\/0\//, `/${id}/`);
+    };
+
+    const getErrorMessage = (error) => {
+      if (!error) {
+        return "Something went wrong.";
+      }
+      if (Array.isArray(error.errors) && error.errors.length) {
+        return error.errors.join(" ");
+      }
+      if (typeof error.message === "string" && error.message) {
+        return error.message;
+      }
+      return "Something went wrong.";
+    };
+
+    const openModal = (modal) => {
+      if (!modal || openModals.has(modal)) {
+        return;
+      }
+      modal.hidden = false;
+      requestAnimationFrame(() => {
+        modal.classList.add("is-visible");
+      });
+      openModals.add(modal);
+      document.body.classList.add("modal-open");
+    };
+
+    const closeModal = (modal) => {
+      if (!modal || !openModals.has(modal)) {
+        return;
+      }
+      openModals.delete(modal);
+      modal.classList.remove("is-visible");
+      const finalize = () => {
+        modal.hidden = true;
+        if (!openModals.size) {
+          document.body.classList.remove("modal-open");
+        }
+      };
+      modal.addEventListener(
+        "transitionend",
+        (event) => {
+          if (event.target === modal) {
+            finalize();
+          }
+        },
+        { once: true }
+      );
+      window.setTimeout(() => {
+        if (!modal.hidden) {
+          finalize();
+        }
+      }, 320);
+    };
+
+    const updateRatingMeta = (meta) => {
+      const averageRaw = meta?.average_rating ?? meta?.averageRating ?? null;
+      const countRaw = meta?.count ?? meta?.rating_count ?? meta?.ratingCount;
+      const average = Number.isFinite(Number(averageRaw)) ? Number(averageRaw) : null;
+      const count = Number.isFinite(Number(countRaw))
+        ? Number(countRaw)
+        : commentsState.length;
+
+      if (ratingDisplay) {
+        ratingDisplay.innerHTML = "";
+        const valueSpan = document.createElement("span");
+        valueSpan.dataset.ratingAverage = "";
+        if (average !== null) {
+          valueSpan.textContent = average.toFixed(1);
+          const star = document.createElement("span");
+          star.setAttribute("aria-hidden", "true");
+          star.textContent = "★";
+          ratingDisplay.appendChild(valueSpan);
+          ratingDisplay.appendChild(star);
+        } else {
+          valueSpan.textContent = "Not yet rated";
+          ratingDisplay.appendChild(valueSpan);
+        }
+      }
+
+      if (ratingCountEl) {
+        ratingCountEl.textContent = String(Math.max(count, 0));
+      }
+
+      page.dataset.averageRating = average !== null ? String(average) : "";
+      page.dataset.ratingCount = String(Math.max(count, 0));
+
+      if (commentCountBadge) {
+        const displayCount = Math.max(count, commentsState.length);
+        commentCountBadge.textContent = displayCount
+          ? `${displayCount} ${displayCount === 1 ? "comment" : "comments"}`
+          : "No comments yet";
+      }
+    };
+
+    const createCommentElement = (item) => {
+      const listItem = document.createElement("li");
+      listItem.className = "comment-card";
+      listItem.dataset.commentId = String(item.id);
+
+      const header = document.createElement("div");
+      header.className = "comment-card__header";
+
+      const meta = document.createElement("div");
+      meta.className = "comment-card__meta";
+
+      const name = document.createElement("span");
+      name.className = "comment-card__author";
+      const user = item.user || {};
+      name.textContent =
+        user.display_name ||
+        user.full_name ||
+        user.username ||
+        "PitchPilot player";
+
+      const dateEl = document.createElement("time");
+      dateEl.className = "comment-card__date";
+      const parsedDate = parseISODate(item.date);
+      if (parsedDate) {
+        dateEl.dateTime = item.date;
+        dateEl.textContent = formatDate(parsedDate);
+      } else {
+        dateEl.textContent = item.date || "";
+      }
+
+      meta.appendChild(name);
+      meta.appendChild(dateEl);
+
+      const rating = document.createElement("span");
+      rating.className = "comment-card__rating";
+      rating.textContent = `${item.rating}/5`;
+
+      header.appendChild(meta);
+      header.appendChild(rating);
+
+      const body = document.createElement("p");
+      body.className = "comment-card__body";
+      body.textContent = item.comment;
+
+      listItem.appendChild(header);
+      listItem.appendChild(body);
+
+      if (item.canEdit || item.canDelete) {
+        const actions = document.createElement("div");
+        actions.className = "comment-card__actions";
+
+        if (item.canEdit && commentEditModal && commentEditForm && commentSaveButton) {
+          const editButton = document.createElement("button");
+          editButton.type = "button";
+          editButton.textContent = "Edit";
+          editButton.addEventListener("click", () => {
+            commentModalError && showMessage(commentModalError, "");
+            commentEditForm.reset();
+            const ratingField = commentEditForm.querySelector("select[name='rating']");
+            const commentField = commentEditForm.querySelector("textarea[name='comment']");
+            if (ratingField) {
+              ratingField.value = String(item.rating);
+            }
+            if (commentField) {
+              commentField.value = item.comment;
+            }
+            commentEditForm.dataset.commentId = String(item.id);
+            openModal(commentEditModal);
+          });
+          actions.appendChild(editButton);
+        }
+
+        if (item.canDelete) {
+          const deleteButton = document.createElement("button");
+          deleteButton.type = "button";
+          deleteButton.textContent = "Delete";
+          deleteButton.addEventListener("click", async () => {
+            if (!window.confirm("Are you sure you want to delete this comment?")) {
+              return;
+            }
+            const url = replaceCommentId(commentDeleteTemplate, item.id);
+            if (!url) {
+              return;
+            }
+            const csrfToken = getCSRFTokenValue();
+            if (!csrfToken) {
+              window.alert("Missing security token. Please refresh the page and try again.");
+              return;
+            }
+            const formData = new FormData();
+            formData.append("csrfmiddlewaretoken", csrfToken);
+            try {
+              const response = await submitForm(url, formData);
+              commentsState = commentsState.filter(
+                (comment) => String(comment.id) !== String(item.id)
+              );
+              updateRatingMeta(response.meta || {});
+              refreshComments();
+            } catch (error) {
+              window.alert(getErrorMessage(error));
+            }
+          });
+          actions.appendChild(deleteButton);
+        }
+
+        listItem.appendChild(actions);
+      }
+
+      return listItem;
+    };
+
+    const refreshComments = () => {
+      if (commentList) {
+        commentList.innerHTML = "";
+        commentsState.forEach((item) => {
+          commentList.appendChild(createCommentElement(item));
+        });
+      }
+      if (commentEmptyState) {
+        commentEmptyState.hidden = commentsState.length > 0;
+      }
+      if (commentCountBadge) {
+        const count = Math.max(
+          commentsState.length,
+          Number(page.dataset.ratingCount || 0)
+        );
+        commentCountBadge.textContent = count
+          ? `${count} ${count === 1 ? "comment" : "comments"}`
+          : "No comments yet";
+      }
+    };
+
+    if (commentForm) {
+      commentForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        showMessage(commentError, "");
+        const formData = new FormData(commentForm);
+        try {
+          const response = await submitForm(commentForm.action, formData);
+          if (response.data) {
+            const numericId = Number(response.data.id);
+            const newComment = {
+              id: Number.isNaN(numericId) ? response.data.id : numericId,
+              rating: Number(response.data.rating) || 0,
+              comment: response.data.comment || "",
+              date: response.data.date || "",
+              user: response.data.user || null,
+              canEdit: Boolean(response.data.can_edit ?? response.data.canEdit),
+              canDelete: Boolean(response.data.can_delete ?? response.data.canDelete),
+            };
+            commentsState = [newComment, ...commentsState];
+            commentForm.reset();
+          }
+          updateRatingMeta(response.meta || {});
+          refreshComments();
+        } catch (error) {
+          showMessage(commentError, getErrorMessage(error));
+        }
+      });
+    }
+
+    if (commentSaveButton && commentEditForm && commentEditModal) {
+      commentSaveButton.addEventListener("click", async () => {
+        showMessage(commentModalError, "");
+        const targetId = commentEditForm.dataset.commentId;
+        if (!targetId) {
+          return;
+        }
+        const url = replaceCommentId(commentUpdateTemplate, targetId);
+        if (!url) {
+          return;
+        }
+        const formData = new FormData(commentEditForm);
+        commentSaveButton.disabled = true;
+        try {
+          const response = await submitForm(url, formData);
+          if (response.data) {
+            const numericId = Number(response.data.id);
+            const updatedId = Number.isNaN(numericId) ? response.data.id : numericId;
+            const updatedComment = {
+              id: updatedId,
+              rating: Number(response.data.rating) || 0,
+              comment: response.data.comment || "",
+              date: response.data.date || "",
+              user: response.data.user || null,
+              canEdit: Boolean(response.data.can_edit ?? response.data.canEdit),
+              canDelete: Boolean(response.data.can_delete ?? response.data.canDelete),
+            };
+            const index = commentsState.findIndex(
+              (comment) => String(comment.id) === String(updatedId)
+            );
+            if (index >= 0) {
+              commentsState.splice(index, 1, updatedComment);
+            } else {
+              commentsState = [updatedComment, ...commentsState];
+            }
+          }
+          updateRatingMeta(response.meta || {});
+          refreshComments();
+          commentEditForm.reset();
+          closeModal(commentEditModal);
+        } catch (error) {
+          showMessage(commentModalError, getErrorMessage(error));
+        } finally {
+          commentSaveButton.disabled = false;
+        }
+      });
+    }
+
+    if (commentEditModal) {
+      commentEditModal.addEventListener("click", (event) => {
+        if (event.target === commentEditModal) {
+          commentEditForm?.reset();
+          if (commentEditForm?.dataset) {
+            delete commentEditForm.dataset.commentId;
+          }
+          showMessage(commentModalError, "");
+          closeModal(commentEditModal);
+        }
+      });
+    }
+
+    if (bookingModal) {
+      bookingModal.addEventListener("click", (event) => {
+        if (event.target === bookingModal) {
+          pendingBookingData = null;
+          showMessage(bookingModalError, "");
+          closeModal(bookingModal);
+        }
+      });
+    }
+
+    page.querySelectorAll("[data-modal-close]").forEach((trigger) => {
+      trigger.addEventListener("click", () => {
+        const modal = trigger.closest(".modal");
+        if (modal === commentEditModal) {
+          commentEditForm?.reset();
+          if (commentEditForm?.dataset) {
+            delete commentEditForm.dataset.commentId;
+          }
+          showMessage(commentModalError, "");
+        }
+        if (modal === bookingModal) {
+          showMessage(bookingModalError, "");
+          pendingBookingData = null;
+        }
+        closeModal(modal);
+      });
+    });
+
+    const randomPhoneNumbers = [
+      "+62 811-2300-455",
+      "+62 812-8899-774",
+      "+62 853-2201-334",
+      "+62 857-9033-118",
+      "+62 821-6654-902",
+    ];
+
+    if (bookingForm && bookingModal && bookingConfirmButton) {
+      bookingForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        showMessage(bookingError, "");
+        showMessage(bookingModalError, "");
+
+        const formData = new FormData(bookingForm);
+        const startValue = formData.get("start_date");
+        const endValue = formData.get("end_date");
+        const startDate = parseISODate(typeof startValue === "string" ? startValue : "");
+        const endDate = parseISODate(typeof endValue === "string" ? endValue : "");
+
+        if (!startDate || !endDate) {
+          showMessage(bookingError, "Choose both a start date and an end date.");
+          return;
+        }
+
+        const duration = Math.floor((endDate - startDate) / DAY_IN_MS) + 1;
+        if (!Number.isFinite(duration) || duration <= 0) {
+          showMessage(bookingError, "End date cannot be before the start date.");
+          return;
+        }
+
+        pendingBookingData = {
+          formData,
+          nights: duration,
+          subtotal: duration * Math.max(price, 0),
+          startDate,
+          endDate,
+        };
+
+        if (bookingSummary.dates) {
+          bookingSummary.dates.textContent = formatDateRange(startDate, endDate);
+        }
+        if (bookingSummary.nights) {
+          bookingSummary.nights.textContent = `${duration} ${
+            duration === 1 ? "night" : "nights"
+          }`;
+        }
+        if (bookingSummary.subtotal) {
+          bookingSummary.subtotal.textContent = formatCurrency(
+            pendingBookingData.subtotal
+          );
+        }
+
+        openModal(bookingModal);
+      });
+
+      bookingConfirmButton.addEventListener("click", async () => {
+        if (!pendingBookingData) {
+          showMessage(bookingModalError, "Please review your booking details first.");
+          return;
+        }
+        showMessage(bookingModalError, "");
+        bookingConfirmButton.disabled = true;
+        try {
+          await submitForm(bookingForm.action, pendingBookingData.formData);
+          bookingForm.reset();
+          closeModal(bookingModal);
+          const phone =
+            randomPhoneNumbers[
+              Math.floor(Math.random() * randomPhoneNumbers.length)
+            ];
+          window.setTimeout(() => {
+            window.alert(`Please pay to ${phone} to complete your booking.`);
+          }, 50);
+          pendingBookingData = null;
+        } catch (error) {
+          showMessage(bookingModalError, getErrorMessage(error));
+        } finally {
+          bookingConfirmButton.disabled = false;
+        }
+      });
+    }
+
+    const initialAverage = Number(page.dataset.averageRating || "");
+    const initialCount = Number(page.dataset.ratingCount || commentsState.length);
+    updateRatingMeta({
+      average_rating: Number.isFinite(initialAverage) ? initialAverage : null,
+      count: Number.isFinite(initialCount) ? initialCount : commentsState.length,
+    });
+    refreshComments();
+
+    page.dataset.initialised = "true";
+  };
+
   const hydrateInitialFragment = () => {
     const initialFragment = mainContainer?.querySelector(PAGE_FRAGMENT_SELECTOR);
     if (initialFragment) {
@@ -489,4 +1100,5 @@ document.addEventListener("DOMContentLoaded", () => {
   attachAjaxLinks(document);
   attachScrollLinks(document);
   initVenuesPage(document);
+  initVenueDetailPage(document);
 });
