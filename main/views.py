@@ -750,6 +750,29 @@ def venue_booking_create_api(request: HttpRequest, pk: int) -> JsonResponse:
 
 @login_required
 @require_POST
+def booking_cancel_api(request: HttpRequest, pk: int) -> JsonResponse:
+    booking = get_object_or_404(
+        Booking.objects.select_related("date").filter(user=request.user),
+        pk=pk,
+    )
+
+    if booking.has_been_paid:
+        return JsonResponse(
+            {
+                "success": False,
+                "errors": ["Paid bookings cannot be cancelled."],
+            },
+            status=400,
+        )
+
+    booking.date.delete()
+    booking.delete()
+
+    return JsonResponse({"success": True})
+
+
+@login_required
+@require_POST
 def venues_create_api(request: HttpRequest) -> JsonResponse:
     forbidden = _forbid_if_not_staff(request)
     if forbidden:

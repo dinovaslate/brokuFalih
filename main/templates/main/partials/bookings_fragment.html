@@ -115,6 +115,8 @@
       </div>
     </header>
 
+    <input type="hidden" data-csrf-token value="{{ csrf_token }}" />
+
     <div class="bookings-table" data-bookings-table>
       <table>
         <thead>
@@ -127,7 +129,11 @@
         </thead>
         <tbody data-bookings-rows>
           {% for booking in bookings %}
-            <tr data-booking-row data-search-text="{{ booking.search_blob }}">
+            <tr
+              data-booking-row
+              data-search-text="{{ booking.search_blob }}"
+              data-booking-id="{{ booking.id }}"
+            >
               <td>
                 <div class="bookings-venue">
                   <span class="bookings-venue__title">{{ booking.venue.title }}</span>
@@ -162,6 +168,16 @@
                   <span class="bookings-payment__amount">
                     Rp {{ booking.total_value|floatformat:0|intcomma }}
                   </span>
+                  {% if not booking.has_been_paid %}
+                    <button
+                      type="button"
+                      class="button button--danger button--sm"
+                      data-booking-cancel
+                      data-cancel-url="{% url 'main:booking_cancel_api' booking.id %}"
+                    >
+                      Cancel booking
+                    </button>
+                  {% endif %}
                 </div>
               </td>
               <td>
