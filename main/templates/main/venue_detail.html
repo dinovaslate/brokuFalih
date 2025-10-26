@@ -1,0 +1,8 @@
+{% extends "main/base_site.html" %}
+{% load humanize %}
+
+{% block title %}{{ venue.title }}{% endblock %}
+
+{% block content %}
+  {% include "main/partials/venue_detail_fragment.html" %}
+{% endblock %}
