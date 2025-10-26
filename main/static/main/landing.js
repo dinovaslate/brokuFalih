@@ -52,133 +52,6 @@ const formatDateRange = (start, end) => {
   return `${formatDate(start)} – ${formatDate(end)}`;
 };
 
-const clampRatingValue = (value) => {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return 0;
-  }
-  return Math.min(Math.max(numeric, 0), 5);
-};
-
-const formatRatingValue = (value) => {
-  const numeric = clampRatingValue(value);
-  if (!numeric) {
-    return "0";
-  }
-  return Number.isInteger(numeric) ? `${numeric}` : numeric.toFixed(1);
-};
-
-const updateStarRatingGroup = (group) => {
-  if (!group) {
-    return;
-  }
-  const inputs = Array.from(group.querySelectorAll("input[type='radio']"));
-  if (!inputs.length) {
-    return;
-  }
-  let checked = inputs.find((input) => input.checked);
-  if (!checked) {
-    const sorted = [...inputs].sort((a, b) => Number(b.value) - Number(a.value));
-    checked = sorted.find((input) => !Number.isNaN(Number(input.value)));
-    if (checked) {
-      checked.checked = true;
-    } else {
-      inputs[0].checked = true;
-      checked = inputs[0];
-    }
-  }
-  const numeric = clampRatingValue(checked?.value);
-  group.style.setProperty("--rating", numeric);
-  const root = group.closest("[data-star-rating-root]") || group;
-  const output = root.querySelector("[data-star-rating-output]");
-  if (output) {
-    output.textContent = numeric
-      ? `${formatRatingValue(numeric)} / 5`
-      : "0 / 5";
-  }
-};
-
-const initStarRatingGroups = (root = document) => {
-  const groups = root.querySelectorAll?.("[data-star-rating]") || [];
-  groups.forEach((group) => {
-    if (group.dataset.initialized === "true") {
-      updateStarRatingGroup(group);
-      return;
-    }
-    group.dataset.initialized = "true";
-    group.addEventListener("change", (event) => {
-      if (event.target && event.target.matches("input[type='radio']")) {
-        updateStarRatingGroup(group);
-      }
-    });
-    group.addEventListener("focusin", () => {
-      group.classList.add("has-focus");
-    });
-    group.addEventListener("focusout", () => {
-      group.classList.remove("has-focus");
-    });
-    updateStarRatingGroup(group);
-  });
-};
-
-const setStarRatingValue = (root, value) => {
-  if (!root) {
-    return;
-  }
-  const group = root.querySelector?.("[data-star-rating]");
-  if (!group) {
-    return;
-  }
-  const inputs = Array.from(group.querySelectorAll("input[type='radio']"));
-  if (!inputs.length) {
-    return;
-  }
-  const values = inputs
-    .map((input) => Number(input.value))
-    .filter((numeric) => Number.isFinite(numeric));
-  const defaultValue = values.length ? Math.max(...values) : null;
-  const numericValue = value == null ? null : clampRatingValue(value);
-  const targetValue =
-    numericValue === null || Number.isNaN(numericValue)
-      ? defaultValue
-      : Math.round(numericValue);
-  let matched = false;
-  inputs.forEach((input) => {
-    const numeric = Number(input.value);
-    const shouldCheck =
-      Number.isFinite(numeric) && targetValue !== null && numeric === targetValue;
-    input.checked = shouldCheck;
-    if (shouldCheck) {
-      matched = true;
-    }
-  });
-  if (!matched && inputs.length) {
-    inputs[0].checked = true;
-  }
-  updateStarRatingGroup(group);
-};
-
-const syncStarRatingOutputs = (root) => {
-  if (!root) {
-    return;
-  }
-  const groups = root.querySelectorAll?.("[data-star-rating]") || [];
-  groups.forEach((group) => updateStarRatingGroup(group));
-};
-
-const applyReadOnlyStars = (element, value) => {
-  if (!element) {
-    return;
-  }
-  const numeric = clampRatingValue(value);
-  element.style.setProperty("--rating", numeric);
-  if (numeric <= 0) {
-    element.classList.add("is-empty");
-  } else {
-    element.classList.remove("is-empty");
-  }
-};
-
 const submitForm = async (url, formData) => {
   const response = await fetch(url, {
     method: "POST",
@@ -711,21 +584,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const commentModalError = commentEditModal?.querySelector("[data-comment-modal-error]");
     const commentSaveButton = commentEditModal?.querySelector("[data-comment-save]");
     const ratingDisplay = page.querySelector("[data-rating-display]");
-    const ratingValueEl = page.querySelector("[data-rating-value]");
-    const ratingStarsEl = page.querySelector("[data-rating-stars]");
     const ratingCountEl = page.querySelector("[data-rating-count]");
 
-    initStarRatingGroups(page);
-
-    let datasetParsedSuccessfully = false;
-
     const parseComments = () => {
-      datasetParsedSuccessfully = false;
       const raw = page.dataset.comments || "[]";
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          datasetParsedSuccessfully = true;
           return parsed.map((item) => {
             const numericId = Number(item?.id);
             const id = Number.isNaN(numericId) ? item?.id : numericId;
@@ -742,46 +607,12 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
       } catch (error) {
-        datasetParsedSuccessfully = false;
+        return [];
       }
       return [];
     };
 
     let commentsState = parseComments();
-    if (!commentsState.length && commentList) {
-      const fallback = Array.from(commentList.querySelectorAll(".comment-card")).map(
-        (card) => {
-          const numericId = Number(card.dataset.commentId);
-          const ratingValue = Number(card.dataset.commentRating || card.dataset.rating);
-          const commentText =
-            card.dataset.commentText ||
-            card.querySelector(".comment-card__body")?.textContent ||
-            "";
-          const dateValue =
-            card.dataset.commentDate ||
-            card.querySelector(".comment-card__date")?.dateTime ||
-            card.querySelector(".comment-card__date")?.textContent ||
-            "";
-          const authorName =
-            card.dataset.commentUser ||
-            card.querySelector(".comment-card__author")?.textContent ||
-            "";
-          return {
-            id: Number.isNaN(numericId) ? card.dataset.commentId || "" : numericId,
-            rating: Number.isNaN(ratingValue) ? 0 : ratingValue,
-            comment: commentText,
-            date: dateValue,
-            user: authorName ? { display_name: authorName } : null,
-            canEdit: card.dataset.commentCanEdit === "true",
-            canDelete: card.dataset.commentCanDelete === "true",
-          };
-        }
-      );
-      if (fallback.length) {
-        commentsState = fallback;
-        datasetParsedSuccessfully = true;
-      }
-    }
     const openModals = new Set();
     let pendingBookingData = null;
 
@@ -869,25 +700,21 @@ document.addEventListener("DOMContentLoaded", () => {
         ? Number(countRaw)
         : commentsState.length;
 
-      if (ratingValueEl) {
-        if (average !== null && average > 0) {
-          ratingValueEl.textContent = formatRatingValue(average);
-          ratingValueEl.dataset.empty = "false";
+      if (ratingDisplay) {
+        ratingDisplay.innerHTML = "";
+        const valueSpan = document.createElement("span");
+        valueSpan.dataset.ratingAverage = "";
+        if (average !== null) {
+          valueSpan.textContent = average.toFixed(1);
+          const star = document.createElement("span");
+          star.setAttribute("aria-hidden", "true");
+          star.textContent = "★";
+          ratingDisplay.appendChild(valueSpan);
+          ratingDisplay.appendChild(star);
         } else {
-          ratingValueEl.textContent = "Not yet rated";
-          ratingValueEl.dataset.empty = "true";
+          valueSpan.textContent = "Not yet rated";
+          ratingDisplay.appendChild(valueSpan);
         }
-      } else if (ratingDisplay) {
-        ratingDisplay.textContent =
-          average !== null && average > 0
-            ? `${formatRatingValue(average)} / 5`
-            : "Not yet rated";
-      }
-
-      if (ratingStarsEl) {
-        applyReadOnlyStars(ratingStarsEl, average ?? 0);
-      } else if (ratingDisplay) {
-        applyReadOnlyStars(ratingDisplay, average ?? 0);
       }
 
       if (ratingCountEl) {
@@ -909,9 +736,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const listItem = document.createElement("li");
       listItem.className = "comment-card";
       listItem.dataset.commentId = String(item.id);
-      listItem.dataset.commentRating = String(item.rating ?? "");
-      listItem.dataset.commentText = item.comment ?? "";
-      listItem.dataset.commentDate = item.date ?? "";
 
       const header = document.createElement("div");
       header.className = "comment-card__header";
@@ -922,10 +746,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const name = document.createElement("span");
       name.className = "comment-card__author";
       const user = item.user || {};
-      const userName =
-        user.display_name || user.full_name || user.username || "PitchPilot player";
-      name.textContent = userName;
-      listItem.dataset.commentUser = userName;
+      name.textContent =
+        user.display_name ||
+        user.full_name ||
+        user.username ||
+        "PitchPilot player";
 
       const dateEl = document.createElement("time");
       dateEl.className = "comment-card__date";
@@ -940,21 +765,11 @@ document.addEventListener("DOMContentLoaded", () => {
       meta.appendChild(name);
       meta.appendChild(dateEl);
 
-      const rating = document.createElement("div");
+      const rating = document.createElement("span");
       rating.className = "comment-card__rating";
-
-      const ratingStars = document.createElement("div");
-      ratingStars.className = "rating-stars rating-stars--sm";
-      ratingStars.setAttribute("aria-hidden", "true");
-      applyReadOnlyStars(ratingStars, item.rating);
-
-      const ratingValue = document.createElement("span");
-      ratingValue.className = "comment-card__rating-value";
-      ratingValue.textContent = `${formatRatingValue(item.rating)} / 5`;
+      rating.textContent = `${item.rating}/5`;
 
       header.appendChild(meta);
-      rating.appendChild(ratingStars);
-      rating.appendChild(ratingValue);
       header.appendChild(rating);
 
       const body = document.createElement("p");
@@ -963,9 +778,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       listItem.appendChild(header);
       listItem.appendChild(body);
-
-      listItem.dataset.commentCanEdit = item.canEdit ? "true" : "false";
-      listItem.dataset.commentCanDelete = item.canDelete ? "true" : "false";
 
       if (item.canEdit || item.canDelete) {
         const actions = document.createElement("div");
@@ -978,12 +790,14 @@ document.addEventListener("DOMContentLoaded", () => {
           editButton.addEventListener("click", () => {
             commentModalError && showMessage(commentModalError, "");
             commentEditForm.reset();
+            const ratingField = commentEditForm.querySelector("select[name='rating']");
             const commentField = commentEditForm.querySelector("textarea[name='comment']");
+            if (ratingField) {
+              ratingField.value = String(item.rating);
+            }
             if (commentField) {
               commentField.value = item.comment;
             }
-            setStarRatingValue(commentEditForm, item.rating);
-            syncStarRatingOutputs(commentEditForm);
             commentEditForm.dataset.commentId = String(item.id);
             openModal(commentEditModal);
           });
@@ -1014,7 +828,6 @@ document.addEventListener("DOMContentLoaded", () => {
               commentsState = commentsState.filter(
                 (comment) => String(comment.id) !== String(item.id)
               );
-              datasetParsedSuccessfully = true;
               updateRatingMeta(response.meta || {});
               refreshComments();
             } catch (error) {
@@ -1031,19 +844,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const refreshComments = () => {
-      const shouldPreserveInitial =
-        !datasetParsedSuccessfully &&
-        commentsState.length === 0 &&
-        commentList &&
-        commentList.children.length > 0;
-
-      if (shouldPreserveInitial) {
-        if (commentEmptyState) {
-          commentEmptyState.hidden = true;
-        }
-        return;
-      }
-
       if (commentList) {
         commentList.innerHTML = "";
         commentsState.forEach((item) => {
@@ -1083,10 +883,7 @@ document.addEventListener("DOMContentLoaded", () => {
               canDelete: Boolean(response.data.can_delete ?? response.data.canDelete),
             };
             commentsState = [newComment, ...commentsState];
-            datasetParsedSuccessfully = true;
             commentForm.reset();
-            setStarRatingValue(commentForm, null);
-            syncStarRatingOutputs(commentForm);
           }
           updateRatingMeta(response.meta || {});
           refreshComments();
@@ -1132,12 +929,9 @@ document.addEventListener("DOMContentLoaded", () => {
               commentsState = [updatedComment, ...commentsState];
             }
           }
-          datasetParsedSuccessfully = true;
           updateRatingMeta(response.meta || {});
           refreshComments();
           commentEditForm.reset();
-          setStarRatingValue(commentEditForm, null);
-          syncStarRatingOutputs(commentEditForm);
           closeModal(commentEditModal);
         } catch (error) {
           showMessage(commentModalError, getErrorMessage(error));
@@ -1153,10 +947,6 @@ document.addEventListener("DOMContentLoaded", () => {
           commentEditForm?.reset();
           if (commentEditForm?.dataset) {
             delete commentEditForm.dataset.commentId;
-          }
-          if (commentEditForm) {
-            setStarRatingValue(commentEditForm, null);
-            syncStarRatingOutputs(commentEditForm);
           }
           showMessage(commentModalError, "");
           closeModal(commentEditModal);
@@ -1181,10 +971,6 @@ document.addEventListener("DOMContentLoaded", () => {
           commentEditForm?.reset();
           if (commentEditForm?.dataset) {
             delete commentEditForm.dataset.commentId;
-          }
-          if (commentEditForm) {
-            setStarRatingValue(commentEditForm, null);
-            syncStarRatingOutputs(commentEditForm);
           }
           showMessage(commentModalError, "");
         }

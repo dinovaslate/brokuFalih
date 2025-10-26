@@ -36,15 +36,13 @@
       {% endif %}
     </div>
     <div class="venue-detail__summary" data-animate="fade-up">
-      <div class="venue-detail__price-card">
-        <p class="venue-detail__price">
-          <span>Rate per night</span>
-          <strong>Rp {{ venue.price|floatformat:0|intcomma }}</strong>
-        </p>
-        <p class="venue-detail__description">
-          {{ venue.description|default:"This venue is ready to host your next unforgettable match." }}
-        </p>
-      </div>
+      <p class="venue-detail__price">
+        <span>Rate</span>
+        <strong>Rp {{ venue.price|floatformat:0|intcomma }}</strong>
+      </p>
+      <p class="venue-detail__description">
+        {{ venue.description|default:"This venue is ready to host your next unforgettable match." }}
+      </p>
       {% if venue.facility_list %}
         <div class="venue-detail__facilities">
           <h2>Included facilities</h2>
@@ -58,20 +56,13 @@
       <dl class="venue-detail__metrics">
         <div>
           <dt>Average rating</dt>
-          <dd class="rating-display" data-rating-display>
-            <span class="rating-display__value" data-rating-value>
-              {% if venue.average_rating %}
-                {{ venue.average_rating|floatformat:-1 }}
-              {% else %}
-                Not yet rated
-              {% endif %}
-            </span>
-            <div
-              class="rating-stars"
-              data-rating-stars
-              aria-hidden="true"
-              style="--rating: {{ venue.average_rating|default:0 }}"
-            ></div>
+          <dd data-rating-display>
+            {% if venue.average_rating %}
+              <span data-rating-average>{{ venue.average_rating|floatformat:1 }}</span>
+              <span aria-hidden="true">★</span>
+            {% else %}
+              <span data-rating-average>Not yet rated</span>
+            {% endif %}
           </dd>
         </div>
         <div>
@@ -82,18 +73,10 @@
     </div>
   </div>
 
-  <div class="venue-detail__actions" data-animate="fade-up">
-    <section class="booking-panel">
-      <header class="booking-panel__header">
-        <div>
-          <h2>Reserve this arena</h2>
-          <p>Pick your match days and review the subtotal before confirming.</p>
-        </div>
-        <div class="booking-panel__badge">
-          <span>Nightly rate</span>
-          <strong>Rp {{ venue.price|floatformat:0|intcomma }}</strong>
-        </div>
-      </header>
+  <div class="venue-detail__actions">
+    <section class="booking-panel" data-animate="fade-up">
+      <h2>Book this venue</h2>
+      <p>Choose your schedule and confirm the investment before securing the pitch.</p>
       <form
         class="booking-form"
         data-booking-form
@@ -119,9 +102,8 @@
         <button type="submit" class="button button--primary">Review booking</button>
       </form>
     </section>
-  </div>
 
-  <section class="comment-section" data-animate="fade-up">
+    <section class="comment-section" data-animate="fade-up">
       <header class="comment-section__header">
         <div>
           <h2>Player discussions</h2>
@@ -144,25 +126,16 @@
       >
         {% csrf_token %}
         <div class="comment-form__fields">
-          <fieldset class="comment-form__rating" data-star-rating-root>
-            <legend class="comment-form__label">Rating</legend>
-            <div class="star-rating" data-star-rating role="radiogroup">
-              {% for value in "54321" %}
-                <input
-                  type="radio"
-                  id="comment-rating-create-{{ value }}"
-                  name="rating"
-                  value="{{ value }}"
-                  {% if value == "5" %}checked{% endif %}
-                  required
-                />
-                <label for="comment-rating-create-{{ value }}" aria-label="{{ value }} out of 5 stars"></label>
+          <label>
+            <span>Rating</span>
+            <select name="rating" required>
+              {% for value in "12345" %}
+                <option value="{{ value }}">{{ value }}</option>
               {% endfor %}
-            </div>
-            <span class="comment-form__rating-value" data-star-rating-output>5 / 5</span>
-          </fieldset>
+            </select>
+          </label>
           <label class="comment-form__message">
-            <span class="comment-form__label">Comment</span>
+            <span>Comment</span>
             <textarea
               name="comment"
               rows="4"
@@ -176,16 +149,7 @@
       </form>
       <ul class="comment-list" data-comment-list>
         {% for entry in comment_objects %}
-          <li
-            class="comment-card"
-            data-comment-id="{{ entry.id }}"
-            data-comment-rating="{{ entry.rating }}"
-            data-comment-text="{{ entry.comment|escape }}"
-            data-comment-date="{{ entry.date|date:'c' }}"
-            data-comment-user="{{ entry.user.get_full_name|default:entry.user.get_username|escape }}"
-            data-comment-can-edit="{% if entry.user_id == request.user.id %}true{% else %}false{% endif %}"
-            data-comment-can-delete="{% if entry.user_id == request.user.id or request.user.is_staff %}true{% else %}false{% endif %}"
-          >
+          <li class="comment-card" data-comment-id="{{ entry.id }}">
             <div class="comment-card__header">
               <div class="comment-card__meta">
                 <span class="comment-card__author">
@@ -198,14 +162,7 @@
                   {{ entry.date|date:"F j, Y" }}
                 </time>
               </div>
-              <div class="comment-card__rating">
-                <div
-                  class="rating-stars rating-stars--sm"
-                  aria-hidden="true"
-                  style="--rating: {{ entry.rating|default:0 }}"
-                ></div>
-                <span class="comment-card__rating-value">{{ entry.rating|floatformat:-1 }} / 5</span>
-              </div>
+              <span class="comment-card__rating">{{ entry.rating }}/5</span>
             </div>
             <p class="comment-card__body">{{ entry.comment }}</p>
           </li>
@@ -259,25 +216,16 @@
       </header>
       <form class="modal__body" method="post" data-comment-edit-form>
         {% csrf_token %}
-        <fieldset class="comment-form__rating" data-star-rating-root>
-          <legend class="comment-form__label">Rating</legend>
-          <div class="star-rating" data-star-rating role="radiogroup">
-            {% for value in "54321" %}
-              <input
-                type="radio"
-                id="comment-rating-edit-{{ value }}"
-                name="rating"
-                value="{{ value }}"
-                {% if value == "5" %}checked{% endif %}
-                required
-              />
-              <label for="comment-rating-edit-{{ value }}" aria-label="{{ value }} out of 5 stars"></label>
-            {% endfor %}
-          </div>
-          <span class="comment-form__rating-value" data-star-rating-output>5 / 5</span>
-        </fieldset>
         <label>
-          <span class="comment-form__label">Comment</span>
+          <span>Rating</span>
+          <select name="rating" required>
+            {% for value in "12345" %}
+              <option value="{{ value }}">{{ value }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>Comment</span>
           <textarea name="comment" rows="4" required></textarea>
         </label>
         <p class="form-error" data-comment-modal-error hidden></p>
