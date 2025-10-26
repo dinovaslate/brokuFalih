@@ -731,29 +731,78 @@ document.addEventListener("DOMContentLoaded", () => {
       ? setupStarRatingControl(commentEditRatingWidget)
       : null;
 
-    const parseComments = () => {
-      const raw = page.dataset.comments || "[]";
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          return parsed.map((item) => {
-            const numericId = Number(item?.id);
-            const id = Number.isNaN(numericId) ? item?.id : numericId;
-            const ratingValue = Number(item?.rating);
-            return {
-              id,
-              rating: Number.isNaN(ratingValue) ? 0 : ratingValue,
-              comment: item?.comment || "",
-              date: item?.date || "",
-              user: item?.user || null,
-              canEdit: Boolean(item?.can_edit ?? item?.canEdit),
-              canDelete: Boolean(item?.can_delete ?? item?.canDelete),
-            };
-          });
-        }
-      } catch (error) {
+    const normaliseComments = (items) => {
+      if (!Array.isArray(items)) {
         return [];
       }
+      return items.map((item) => {
+        const numericId = Number(item?.id);
+        const id = Number.isNaN(numericId) ? item?.id : numericId;
+        const ratingValue = Number(item?.rating);
+        return {
+          id,
+          rating: Number.isNaN(ratingValue) ? 0 : ratingValue,
+          comment: item?.comment || "",
+          date: item?.date || "",
+          user: item?.user || null,
+          canEdit: Boolean(item?.can_edit ?? item?.canEdit),
+          canDelete: Boolean(item?.can_delete ?? item?.canDelete),
+        };
+      });
+    };
+
+    const readJsonFromScript = (scriptId) => {
+      if (!scriptId) {
+        return "";
+      }
+      let scriptElement = null;
+      const escapeId = (value) => {
+        if (typeof window.CSS !== "undefined" && typeof window.CSS.escape === "function") {
+          try {
+            return `#${window.CSS.escape(value)}`;
+          } catch (error) {
+            return null;
+          }
+        }
+        if (!value) {
+          return null;
+        }
+        const safeValue = String(value).replace(/[^0-9A-Za-z_\-:]/g, "\\$&");
+        return `#${safeValue}`;
+      };
+
+      const selector = escapeId(scriptId);
+      if (selector && page.querySelector) {
+        scriptElement = page.querySelector(selector);
+      }
+      if (!scriptElement) {
+        scriptElement = document.getElementById(scriptId);
+      }
+      return scriptElement?.textContent || "";
+    };
+
+    const parseComments = () => {
+      const raw = page.dataset.comments;
+      if (raw) {
+        try {
+          return normaliseComments(JSON.parse(raw));
+        } catch (error) {
+          // Fallback to alternate sources below.
+        }
+      }
+
+      const scriptId = page.dataset.commentsSource || page.dataset.commentsScriptId || "";
+      if (scriptId) {
+        const scriptContent = readJsonFromScript(scriptId);
+        if (scriptContent) {
+          try {
+            return normaliseComments(JSON.parse(scriptContent));
+          } catch (error) {
+            return [];
+          }
+        }
+      }
+
       return [];
     };
 

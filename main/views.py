@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
@@ -18,6 +17,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import json_script
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
@@ -552,13 +552,17 @@ def venue_detail_page(request: HttpRequest, pk: int) -> HttpResponse:
         "main:venue_comments_delete_api",
         args=[venue_obj.id, 0],
     )
+    comments_script_id = f"venue-comments-{venue_obj.id}"
+    comments_json_script = json_script(comments_payload, comments_script_id)
 
     context = {
         "venue": venue_data,
-        "comments_json": json.dumps(comments_payload),
+        "comments_payload": comments_payload,
         "comment_objects": comments_queryset,
         "comment_update_template": comment_update_template,
         "comment_delete_template": comment_delete_template,
+        "comments_script_id": comments_script_id,
+        "comments_json_script": comments_json_script,
     }
 
     template = (
