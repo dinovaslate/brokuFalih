@@ -340,19 +340,108 @@
       </div>
     </section>
 
-    <section class="section closing" id="profile" data-animate="fade-up">
-      <div class="closing-card">
-        <div class="closing-copy">
-          <h2>Ready to choreograph the next sold-out fixture?</h2>
-          <p>
-            Unlock automated booking flows, cinematic match storytelling, and AI-driven turf care.
-            Your venue becomes the stage fans never forget.
+    <section class="section bookings" id="bookings" data-animate="fade-up">
+      <header class="section-heading">
+        <h2>Your booking ledger</h2>
+        <p>
+          Track every reservation, confirm payments, and review venue details without leaving your
+          player hub.
+        </p>
+      </header>
+      <div class="booking-insights" aria-label="Booking highlights">
+        <div class="booking-insight">
+          <span class="booking-insight__label">Total reservations</span>
+          <span class="booking-insight__value">{{ user_booking_stats.total|default:0 }}</span>
+        </div>
+        <div class="booking-insight">
+          <span class="booking-insight__label">Upcoming fixtures</span>
+          <span class="booking-insight__value">{{ user_booking_stats.upcoming|default:0 }}</span>
+        </div>
+        <div class="booking-insight">
+          <span class="booking-insight__label">Payments cleared</span>
+          <span class="booking-insight__value">{{ user_booking_stats.paid|default:0 }}</span>
+        </div>
+      </div>
+      <div class="booking-table-card" data-booking-table>
+        <div class="booking-table-card__header">
+          <div>
+            <h3>Recent bookings</h3>
+            <p>Monitor your matchday pipeline and payment progress in real time.</p>
+          </div>
+          <a class="cta tertiary" href="{% url 'main:venues_page' %}" data-ajax-nav data-transition="slide"
+            >Book another venue</a
+          >
+        </div>
+        {% if user_bookings %}
+          <div class="booking-table-wrapper">
+            <table class="booking-table" aria-label="Your bookings">
+              <thead>
+                <tr>
+                  <th scope="col">Venue</th>
+                  <th scope="col">Schedule</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Total</th>
+                  <th scope="col">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for booking in user_bookings %}
+                  <tr data-booking-row>
+                    <td data-label="Venue">
+                      <div class="booking-venue">
+                        <span class="booking-venue__name">{{ booking.venue.title }}</span>
+                        <span class="booking-venue__type">{{ booking.venue.get_type_display }}</span>
+                        <span class="booking-venue__location">{{ booking.venue.location }}</span>
+                      </div>
+                    </td>
+                    <td data-label="Schedule">
+                      <div class="booking-schedule">
+                        <span class="booking-dates">
+                          {{ booking.date.start_date|date:"j M Y" }}
+                          {% if booking.date.end_date and booking.date.end_date != booking.date.start_date %}
+                            – {{ booking.date.end_date|date:"j M Y" }}
+                          {% endif %}
+                        </span>
+                        <span class="booking-duration">
+                          {{ booking.duration_days|default:1 }} {{ booking.duration_days|default:1|pluralize:"day,days" }}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Status">
+                      <div class="booking-status">
+                        {% if booking.has_been_paid %}
+                          <span class="status-pill status-pill--paid">
+                        {% else %}
+                          <span class="status-pill status-pill--pending">
+                        {% endif %}
+                          {{ booking.has_been_paid|yesno:"Paid,Awaiting payment" }}
+                        </span>
+                        {% if booking.has_been_paid and booking.date_paid %}
+                          <small>Paid on {{ booking.date_paid|date:"j M Y" }}</small>
+                        {% else %}
+                          <small>Created {{ booking.created_at|date:"j M Y" }}</small>
+                        {% endif %}
+                      </div>
+                    </td>
+                    <td data-label="Total">
+                      <div class="booking-amount">
+                        <span>Rp {{ booking.total_price|default:booking.venue.price|intcomma }}</span>
+                        <small>Rp {{ booking.venue.price|intcomma }} / day</small>
+                      </div>
+                    </td>
+                    <td data-label="Notes">
+                      <p class="booking-notes">{{ booking.notes|default:"—" }}</p>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="booking-empty-state">
+            You haven't scheduled any matches yet. Explore venues to line up your first booking.
           </p>
-        </div>
-        <div class="closing-actions">
-          <a class="cta primary" href="#top-venues">Plan my next match</a>
-          <a class="cta tertiary" href="{% url 'main:logout' %}">Sign out</a>
-        </div>
+        {% endif %}
       </div>
     </section>
   </div>

@@ -235,6 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshParallaxItems(fragment);
     attachAjaxLinks(fragment);
     attachScrollLinks(fragment);
+    initBookingTable(fragment);
     initVenuesPage(fragment);
     initVenueDetailPage(fragment);
     applyPageMetadata(fragment);
@@ -380,6 +381,78 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
       });
+    });
+  };
+
+  const initBookingTable = (root = document) => {
+    const findBookingCards = (context) => {
+      if (!context) {
+        return [];
+      }
+      if (context.matches?.("[data-booking-table]")) {
+        return [context];
+      }
+      if (typeof context.querySelectorAll === "function") {
+        return Array.from(context.querySelectorAll("[data-booking-table]"));
+      }
+      return [];
+    };
+
+    const bookingCards = findBookingCards(root);
+    if (!bookingCards.length) {
+      return;
+    }
+
+    const reduceMotionQuery =
+      typeof window.matchMedia === "function"
+        ? window.matchMedia("(prefers-reduced-motion: reduce)")
+        : null;
+    const prefersReducedMotion = Boolean(reduceMotionQuery && reduceMotionQuery.matches);
+    const canAnimate = typeof anime === "function" && !prefersReducedMotion;
+
+    bookingCards.forEach((card) => {
+      if (card.dataset.animated === "true") {
+        return;
+      }
+
+      const rows = card.querySelectorAll("[data-booking-row]");
+      if (!rows.length) {
+        card.dataset.animated = "true";
+        return;
+      }
+
+      if (!canAnimate) {
+        rows.forEach((row) => {
+          row.style.removeProperty("opacity");
+          row.style.removeProperty("transform");
+        });
+        card.dataset.animated = "true";
+        return;
+      }
+
+      anime.set(rows, { opacity: 0, translateY: 16 });
+
+      const observer = new IntersectionObserver(
+        (entries, obs) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              obs.unobserve(entry.target);
+              anime({
+                targets: rows,
+                opacity: 1,
+                translateY: 0,
+                delay: anime.stagger(90),
+                duration: 560,
+                easing: "easeOutQuad",
+              });
+            }
+          });
+        },
+        { threshold: 0.35 }
+      );
+
+      observer.observe(card);
+      card.dataset.animated = "true";
     });
   };
 
@@ -1324,6 +1397,7 @@ document.addEventListener("DOMContentLoaded", () => {
   refreshParallaxItems(document);
   attachAjaxLinks(document);
   attachScrollLinks(document);
+  initBookingTable(document);
   initVenuesPage(document);
   initVenueDetailPage(document);
 });

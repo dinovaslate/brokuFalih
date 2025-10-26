@@ -89,9 +89,35 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "overall_rating": overall_rating,
     }
 
+    user_bookings_queryset = (
+        Booking.objects.select_related("venue", "date")
+        .filter(user=request.user)
+        .order_by("-date__start_date", "-created_at")
+    )
+
+    user_bookings: list[Booking] = []
+    for booking in user_bookings_queryset:
+        start_date = booking.date.start_date
+        end_date = booking.date.end_date or start_date
+        delta_days = (end_date - start_date).days
+        duration_days = max(1, delta_days)
+        booking.duration_days = duration_days
+        booking.total_price = booking.venue.price * duration_days
+        user_bookings.append(booking)
+
+    user_booking_stats = {
+        "total": len(user_bookings),
+        "upcoming": sum(
+            1 for booking in user_bookings if booking.date.start_date >= today
+        ),
+        "paid": sum(1 for booking in user_bookings if booking.has_been_paid),
+    }
+
     context = {
         "metrics": metrics,
         "top_venues": top_venues,
+        "user_bookings": user_bookings,
+        "user_booking_stats": user_booking_stats,
     }
 
     template = (
