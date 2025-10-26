@@ -741,7 +741,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const commentDeleteTemplate = page.dataset.commentDeleteTemplate || "";
     const bookingForm = page.querySelector("[data-booking-form]");
     const bookingError = page.querySelector("[data-booking-error]");
-    const bookingModal = document.querySelector('[data-booking-modal]');
+    const bookingModal = page.querySelector('[data-booking-modal]');
     const bookingModalError = bookingModal?.querySelector('[data-booking-modal-error]');
     const bookingConfirmButton = bookingModal?.querySelector('[data-booking-confirm]');
     const bookingSummary = bookingModal
@@ -756,7 +756,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const commentList = page.querySelector('[data-comment-list]');
     const commentEmptyState = page.querySelector('[data-comment-empty]');
     const commentCountBadge = page.querySelector('[data-comment-count]');
-    const commentEditModal = document.querySelector('[data-comment-modal]');
+    const commentEditModal = page.querySelector('[data-comment-modal]');
     const commentEditForm = commentEditModal?.querySelector('[data-comment-edit-form]');
     const commentModalError = commentEditModal?.querySelector('[data-comment-modal-error]');
     const commentSaveButton = commentEditModal?.querySelector('[data-comment-save]');
@@ -1341,7 +1341,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    document.querySelectorAll('[data-modal-close]').forEach((trigger) => {
+    page.querySelectorAll('[data-modal-close]').forEach((trigger) => {
       trigger.addEventListener('click', () => {
         const modal = trigger.closest('.modal');
         if (modal === commentEditModal) {
