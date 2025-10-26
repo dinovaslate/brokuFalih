@@ -316,10 +316,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const totalEl = page.querySelector("[data-venues-total]");
     const queryEl = page.querySelector("[data-venues-query]");
     const totalAvailable = Number(meta?.dataset.total || totalEl?.textContent || cards.length);
+    let lastQuery = "";
 
     if (totalEl) {
       totalEl.textContent = String(totalAvailable);
     }
+
+    const playGridAnimation = (className, { removeAfter = false } = {}) => {
+      if (!grid) {
+        return;
+      }
+
+      grid.classList.remove(className);
+      // Force reflow so the animation retriggers when the class is re-added.
+      void grid.offsetWidth;
+      grid.classList.add(className);
+
+      if (removeAfter) {
+        window.setTimeout(() => {
+          grid.classList.remove(className);
+        }, 620);
+      }
+    };
 
     const renderTokens = (keywords) => {
       if (!tokensList) {
@@ -382,6 +400,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const rawKeywords = rawQuery ? rawQuery.split(/\s+/).filter(Boolean) : [];
       const keywords = rawKeywords.map((keyword) => keyword.toLowerCase());
       let matches = 0;
+      const hasQueryChanged = rawQuery !== lastQuery;
+      lastQuery = rawQuery;
 
       cards.forEach((card) => {
         const haystack = card.dataset.searchText || "";
@@ -407,6 +427,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (grid) {
         grid.classList.toggle("is-filtering", rawKeywords.length > 0);
         grid.dataset.matches = String(matches);
+        if (hasQueryChanged && rawKeywords.length > 0) {
+          playGridAnimation("is-searching", { removeAfter: true });
+        } else if (hasQueryChanged && rawKeywords.length === 0) {
+          playGridAnimation("is-entering", { removeAfter: true });
+        }
       }
     };
 
@@ -421,6 +446,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     filterCards();
+    const triggerInitialEntrance = () => {
+      playGridAnimation("is-entering", { removeAfter: true });
+    };
+
+    if (page.classList.contains("is-active")) {
+      window.requestAnimationFrame(triggerInitialEntrance);
+    } else {
+      const handleTransitionEnd = (event) => {
+        if (event.target === page && event.propertyName === "transform") {
+          page.removeEventListener("transitionend", handleTransitionEnd);
+          triggerInitialEntrance();
+        }
+      };
+      page.addEventListener("transitionend", handleTransitionEnd);
+    }
+
     page.dataset.initialised = "true";
   };
 

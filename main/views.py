@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import re
+
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
+
 from django.core.paginator import Paginator
 from django.db.models import Avg, Case, CharField, Count, Q, Sum, Value, When
 from django.db.models.functions import Cast, Coalesce, Concat
@@ -430,12 +433,35 @@ def venues_page(request: HttpRequest) -> HttpResponse:
     venues_queryset = _base_venue_queryset().order_by("title")
     venues = [_serialize_venue(venue) for venue in venues_queryset]
     for venue in venues:
+        facilities = venue.get("facilities")
+        facility_list: list[str] = []
+
+        if isinstance(facilities, (list, tuple, set)):
+            for item in facilities:
+                text = str(item).strip()
+                if text:
+                    facility_list.append(text)
+        elif isinstance(facilities, str):
+            segments = re.split(r"[,\n]+", facilities.replace("\r", "\n"))
+            for segment in segments:
+                text = segment.strip()
+                if text:
+                    facility_list.append(text)
+        elif facilities:
+            segments = re.split(r"[,\n]+", str(facilities).replace("\r", "\n"))
+            for segment in segments:
+                text = segment.strip()
+                if text:
+                    facility_list.append(text)
+
+        facility_terms = " ".join(facility_list)
+
         pieces = [
             venue.get("title"),
             venue.get("type"),
             venue.get("location"),
             venue.get("description"),
-            venue.get("facilities"),
+            facility_terms,
         ]
         price = venue.get("price")
         if price is not None:
@@ -447,17 +473,6 @@ def venues_page(request: HttpRequest) -> HttpResponse:
             str(piece).strip() for piece in pieces if piece
         ).lower()
 
-        facilities = venue.get("facilities")
-        facility_list: list[str] = []
-        if facilities:
-            raw_segments = str(facilities).replace("\r", "\n").split(",")
-            temp: list[str] = []
-            for segment in raw_segments:
-                temp.extend(segment.split("\n"))
-            for segment in temp:
-                cleaned = segment.strip()
-                if cleaned:
-                    facility_list.append(cleaned)
         venue["facility_list"] = facility_list
 
     context = {"venues": venues}

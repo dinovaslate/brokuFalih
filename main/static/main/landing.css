@@ -1578,6 +1578,24 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
   display: none;
 }
 
+.venues-grid.is-entering .venue-card.is-revealed,
+.venues-grid.is-searching .venue-card.is-revealed {
+  animation: venues-card-slide 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--stagger-index, 0) * 60ms);
+}
+
+@keyframes venues-card-slide {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 32px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 .venue-card__media {
   position: relative;
   aspect-ratio: 4 / 3;
