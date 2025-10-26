@@ -1078,7 +1078,7 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
 
 .venues-page {
   position: relative;
-  width: min(1120px, 95vw);
+  width: min(1280px, 92vw);
   margin: clamp(4.5rem, 9vw, 6.5rem) auto clamp(6rem, 12vw, 8rem);
   display: grid;
   gap: clamp(2.6rem, 4vw, 3.6rem);
@@ -1543,9 +1543,9 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
 }
 
 .venues-page .venue-card {
-  background: linear-gradient(180deg, #ffffff 0%, #f4f6ff 100%);
-  border: 1px solid rgba(206, 212, 255, 0.75);
-  box-shadow: 0 40px 70px rgba(26, 32, 94, 0.22);
+  background: linear-gradient(180deg, rgba(20, 26, 56, 0.95) 0%, rgba(10, 14, 32, 0.96) 100%);
+  border: 1px solid rgba(104, 134, 255, 0.25);
+  box-shadow: 0 40px 85px rgba(5, 9, 24, 0.65);
   border-radius: 28px;
   overflow: hidden;
   display: grid;
@@ -1568,7 +1568,7 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
 .venues-page .venue-card.is-revealed:hover,
 .venues-page .venue-card.is-revealed:focus-within {
   transform: translate3d(0, -6px, 0);
-  box-shadow: 0 48px 85px rgba(26, 32, 94, 0.25);
+  box-shadow: 0 52px 95px rgba(5, 9, 24, 0.75);
 }
 
 .venues-page .venue-card.is-hidden {
@@ -1608,8 +1608,8 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
   height: 100%;
   display: grid;
   place-items: center;
-  background: linear-gradient(145deg, rgba(133, 168, 255, 0.35), rgba(220, 228, 255, 0.55));
-  color: rgba(37, 51, 105, 0.55);
+  background: linear-gradient(145deg, rgba(57, 88, 176, 0.45), rgba(21, 33, 78, 0.8));
+  color: rgba(196, 210, 255, 0.6);
   font-weight: 700;
   font-size: 1.2rem;
   letter-spacing: 0.08em;
@@ -1622,20 +1622,20 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
   right: 1rem;
   padding: 0.35rem 0.9rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(157, 173, 255, 0.5);
+  background: rgba(19, 28, 71, 0.9);
+  border: 1px solid rgba(124, 156, 255, 0.4);
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  color: #2a3472;
+  color: #d6e0ff;
 }
 
 .venue-card__body {
   display: grid;
   gap: 1.1rem;
   padding: 1.6rem 1.8rem 0;
-  color: #1e2855;
+  color: #f4f6ff;
 }
 
 .venue-card__meta {
@@ -1644,13 +1644,13 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
   align-items: center;
   gap: 0.75rem;
   font-size: 0.9rem;
-  color: rgba(50, 63, 120, 0.78);
+  color: rgba(196, 210, 255, 0.78);
   letter-spacing: 0.01em;
 }
 
 .venue-card__meta .venue-card__price {
   font-weight: 700;
-  color: #4456d9;
+  color: #7fa0ff;
   font-size: 1.05rem;
 }
 
@@ -1662,7 +1662,7 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
 
 .venue-card__description {
   margin: 0;
-  color: rgba(57, 70, 118, 0.85);
+  color: rgba(214, 220, 255, 0.78);
   line-height: 1.65;
 }
 
@@ -1674,17 +1674,17 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
 }
 
 .venue-card__stats div {
-  background: rgba(239, 243, 255, 0.85);
+  background: linear-gradient(180deg, rgba(29, 39, 82, 0.85), rgba(17, 24, 52, 0.85));
   border-radius: var(--radius-sm);
   padding: 0.85rem 1.1rem;
-  border: 1px solid rgba(179, 194, 255, 0.6);
+  border: 1px solid rgba(114, 142, 255, 0.2);
 }
 
 .venue-card__stats dt {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  color: rgba(73, 91, 155, 0.7);
+  color: rgba(164, 186, 255, 0.6);
   margin: 0 0 0.35rem;
 }
 
@@ -1692,7 +1692,7 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
-  color: #1c2852;
+  color: #f4f7ff;
 }
 
 .venue-card__chips {
@@ -1707,11 +1707,11 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
 .venue-card__chips li {
   padding: 0.4rem 0.85rem;
   border-radius: 999px;
-  background: rgba(127, 147, 255, 0.18);
-  border: 1px solid rgba(132, 149, 255, 0.35);
+  background: rgba(80, 110, 210, 0.22);
+  border: 1px solid rgba(138, 164, 255, 0.3);
   font-size: 0.78rem;
   letter-spacing: 0.05em;
-  color: #32438f;
+  color: #d4ddff;
 }
 
 .venues-empty {
@@ -1721,10 +1721,10 @@ body[data-active-page="venues"] .floating-nav__link[data-ajax-nav] {
   text-align: center;
   padding: 2.4rem;
   border-radius: calc(var(--radius-lg) + 4px);
-  background: rgba(247, 249, 255, 0.9);
-  border: 2px dashed rgba(143, 162, 255, 0.5);
-  color: #253369;
-  box-shadow: 0 32px 60px rgba(24, 30, 88, 0.2);
+  background: linear-gradient(180deg, rgba(18, 23, 48, 0.92), rgba(9, 13, 31, 0.94));
+  border: 2px dashed rgba(124, 148, 255, 0.4);
+  color: #dce4ff;
+  box-shadow: 0 32px 60px rgba(5, 9, 24, 0.6);
 }
 
 .venues-empty span {

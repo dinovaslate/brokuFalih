@@ -401,7 +401,8 @@ document.addEventListener("DOMContentLoaded", () => {
       updateMetaState(rawKeywords, matches);
 
       if (emptyState) {
-        emptyState.hidden = matches > 0;
+        const shouldShowEmptyState = rawKeywords.length > 0 && matches === 0;
+        emptyState.hidden = !shouldShowEmptyState;
       }
       if (grid) {
         grid.classList.toggle("is-filtering", rawKeywords.length > 0);
