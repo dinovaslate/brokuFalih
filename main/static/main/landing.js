@@ -310,10 +310,77 @@ document.addEventListener("DOMContentLoaded", () => {
     const emptyState = page.querySelector("[data-venues-empty]");
     const grid = page.querySelector("[data-venues-grid]");
     const meta = page.querySelector("[data-venues-meta]");
+    const tokensList = page.querySelector("[data-venues-tokens]");
+    const filterLabel = page.querySelector("[data-venues-filter-label]");
+    const matchedEl = page.querySelector("[data-venues-matched]");
+    const totalEl = page.querySelector("[data-venues-total]");
+    const queryEl = page.querySelector("[data-venues-query]");
+    const totalAvailable = Number(meta?.dataset.total || totalEl?.textContent || cards.length);
+
+    if (totalEl) {
+      totalEl.textContent = String(totalAvailable);
+    }
+
+    const renderTokens = (keywords) => {
+      if (!tokensList) {
+        return;
+      }
+
+      if (!keywords.length) {
+        tokensList.innerHTML = "";
+        tokensList.classList.remove("is-active");
+        tokensList.setAttribute("aria-hidden", "true");
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      keywords.forEach((keyword, index) => {
+        const token = document.createElement("li");
+        token.textContent = keyword;
+        token.style.setProperty("--token-index", String(index));
+        fragment.appendChild(token);
+      });
+
+      tokensList.innerHTML = "";
+      tokensList.appendChild(fragment);
+      tokensList.classList.add("is-active");
+      tokensList.setAttribute("aria-hidden", "false");
+    };
+
+    const updateMetaState = (rawKeywords, matches) => {
+      if (countEl) {
+        countEl.textContent = String(matches);
+      }
+      if (matchedEl) {
+        matchedEl.textContent = String(matches);
+      }
+      if (totalEl) {
+        totalEl.textContent = String(totalAvailable);
+      }
+      if (queryEl) {
+        if (rawKeywords.length) {
+          queryEl.textContent = rawKeywords
+            .map((keyword) => `#${keyword}`)
+            .join("  ·  ");
+        } else {
+          queryEl.textContent = "";
+        }
+      }
+      if (filterLabel) {
+        filterLabel.setAttribute("aria-hidden", rawKeywords.length > 0 ? "false" : "true");
+      }
+      if (meta) {
+        meta.classList.toggle("is-filtering", rawKeywords.length > 0);
+        meta.dataset.matches = String(matches);
+        meta.dataset.keywords = rawKeywords.join(" ");
+      }
+    };
 
     const filterCards = () => {
-      const query = (input?.value || "").trim().toLowerCase();
-      const keywords = query ? query.split(/\s+/).filter(Boolean) : [];
+      const rawValue = input?.value || "";
+      const rawQuery = rawValue.trim();
+      const rawKeywords = rawQuery ? rawQuery.split(/\s+/).filter(Boolean) : [];
+      const keywords = rawKeywords.map((keyword) => keyword.toLowerCase());
       let matches = 0;
 
       cards.forEach((card) => {
@@ -330,17 +397,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      if (countEl) {
-        countEl.textContent = matches;
-      }
+      renderTokens(rawKeywords);
+      updateMetaState(rawKeywords, matches);
+
       if (emptyState) {
         emptyState.hidden = matches > 0;
       }
       if (grid) {
-        grid.classList.toggle("is-filtering", keywords.length > 0);
-      }
-      if (meta) {
-        meta.classList.toggle("is-muted", keywords.length > 0);
+        grid.classList.toggle("is-filtering", rawKeywords.length > 0);
+        grid.dataset.matches = String(matches);
       }
     };
 
