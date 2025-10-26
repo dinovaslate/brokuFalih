@@ -1,0 +1,183 @@
+{% load humanize %}
+<section
+  class="bookings-page page-fragment"
+  data-page-fragment
+  data-page="bookings"
+  data-page-title="My Bookings"
+>
+  <header class="bookings-hero" data-animate="fade-up">
+    <div class="bookings-hero__copy">
+      <a class="bookings-hero__back" href="{% url 'main:dashboard' %}" data-ajax-nav>
+        <span aria-hidden="true">←</span>
+        <span>Back to spotlight</span>
+      </a>
+      <span class="bookings-hero__eyebrow">Matchday pipeline</span>
+      <h1>Command center for your pitch reservations</h1>
+      <p>
+        Stay in sync with upcoming kickoffs, payment status, and booking notes without leaving the
+        dashboard.
+      </p>
+      {% if stats.pending %}
+        <p class="bookings-hero__alert">
+          <strong>{{ stats.pending }}</strong>
+          pending {{ stats.pending|pluralize:"booking,bookings" }} awaiting payment.
+        </p>
+      {% endif %}
+    </div>
+    <dl class="bookings-hero__stats">
+      <div>
+        <dt>Total secured slots</dt>
+        <dd data-counter="{{ stats.total|default:0 }}">{{ stats.total|default:0 }}</dd>
+      </div>
+      <div>
+        <dt>Upcoming matches</dt>
+        <dd data-counter="{{ stats.upcoming|default:0 }}">{{ stats.upcoming|default:0 }}</dd>
+      </div>
+      <div>
+        <dt>Payments cleared</dt>
+        <dd data-counter="{{ stats.paid|default:0 }}">{{ stats.paid|default:0 }}</dd>
+      </div>
+      <div>
+        <dt>Lifetime spend</dt>
+        <dd>Rp {{ stats.lifetime_spend|default:0|floatformat:0|intcomma }}</dd>
+      </div>
+    </dl>
+  </header>
+
+  {% if next_booking %}
+    <article class="bookings-next" data-animate="fade-up">
+      <span class="bookings-next__pill">Next kickoff locked</span>
+      <h2>{{ next_booking.venue.title }}</h2>
+      <p>
+        {{ next_booking.venue.location|default:"Location TBA" }} ·
+        {{ next_booking.duration_label }} starting on
+        {{ next_booking.date.start_date|date:"l, F j" }}.
+      </p>
+      <dl>
+        <div>
+          <dt>Schedule</dt>
+          <dd>
+            {{ next_booking.date.start_date|date:"M j, Y" }}
+            {% if next_booking.date.end_date != next_booking.date.start_date %}
+              – {{ next_booking.date.end_date|date:"M j, Y" }}
+            {% endif %}
+          </dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>
+            <span class="bookings-status bookings-status--{{ next_booking.status_key }}">
+              {{ next_booking.status_label }}
+            </span>
+          </dd>
+        </div>
+        <div>
+          <dt>Total value</dt>
+          <dd>Rp {{ next_booking.total_value|floatformat:0|intcomma }}</dd>
+        </div>
+      </dl>
+    </article>
+  {% endif %}
+
+  <section class="bookings-surface" data-animate="fade-up">
+    <header class="bookings-toolbar">
+      <form class="bookings-search" role="search" novalidate>
+        <label class="bookings-search__field" aria-label="Search your bookings">
+          <span class="bookings-search__icon" aria-hidden="true">🔍</span>
+          <input
+            type="search"
+            name="q"
+            autocomplete="off"
+            placeholder="Search by venue, date, payment or notes…"
+            data-bookings-input
+          />
+        </label>
+      </form>
+      <div
+        class="bookings-toolbar__meta"
+        data-bookings-meta
+        data-total="{{ bookings|length }}"
+      >
+        <span class="bookings-toolbar__meta-default" data-bookings-meta-default>
+          Showing <span data-bookings-count>{{ bookings|length }}</span>
+          {{ bookings|length|pluralize:"booking,bookings" }}.
+        </span>
+        <span
+          class="bookings-toolbar__meta-filter"
+          data-bookings-meta-filter
+          hidden
+          aria-hidden="true"
+        >
+          Matching <span data-bookings-matched>{{ bookings|length }}</span>
+          of <span data-bookings-total>{{ bookings|length }}</span> bookings for
+          “<span data-bookings-query></span>”.
+        </span>
+      </div>
+    </header>
+
+    <div class="bookings-table" data-bookings-table>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Venue</th>
+            <th scope="col">Schedule</th>
+            <th scope="col">Payment</th>
+            <th scope="col">Notes</th>
+          </tr>
+        </thead>
+        <tbody data-bookings-rows>
+          {% for booking in bookings %}
+            <tr data-booking-row data-search-text="{{ booking.search_blob }}">
+              <td>
+                <div class="bookings-venue">
+                  <span class="bookings-venue__title">{{ booking.venue.title }}</span>
+                  <span class="bookings-venue__location">
+                    {{ booking.venue.location|default:"Location TBA" }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div class="bookings-schedule">
+                  <span class="bookings-schedule__range">
+                    {{ booking.date.start_date|date:"M j, Y" }}
+                    {% if booking.date.end_date != booking.date.start_date %}
+                      – {{ booking.date.end_date|date:"M j, Y" }}
+                    {% endif %}
+                  </span>
+                  <span class="bookings-schedule__meta">
+                    {{ booking.duration_label }} ·
+                    {% if booking.is_upcoming %}
+                      Upcoming
+                    {% else %}
+                      Completed
+                    {% endif %}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div class="bookings-payment">
+                  <span class="bookings-status bookings-status--{{ booking.status_key }}">
+                    {{ booking.status_label }}
+                  </span>
+                  <span class="bookings-payment__amount">
+                    Rp {{ booking.total_value|floatformat:0|intcomma }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                {% if booking.notes %}
+                  <p class="bookings-notes">{{ booking.notes }}</p>
+                {% else %}
+                  <span class="bookings-notes bookings-notes--empty">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="bookings-empty" data-bookings-empty {% if bookings %}hidden{% endif %}>
+      No bookings yet. Explore the Venues directory to secure your next match.
+    </p>
+  </section>
+</section>
