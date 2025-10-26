@@ -1,0 +1,107 @@
+{% load humanize %}
+<section
+  class="venues-page page-fragment"
+  data-page-fragment
+  data-page="venues"
+  data-page-title="Venues Directory"
+>
+  <div class="venues-intro" data-animate="fade-up">
+    <a class="venues-intro__back" href="{% url 'main:dashboard' %}" data-ajax-nav>
+      <span aria-hidden="true">←</span>
+      <span>Back to spotlight</span>
+    </a>
+    <span class="venues-intro__eyebrow">PitchPilot network</span>
+    <h1>Explore our immersive arena directory</h1>
+    <p>
+      Filter high-performance turfs, boutique domes, and under-the-lights courts without refreshing
+      the page. Combine keywords like <strong>"Aurora 250000 evening"</strong> to surface the exact
+      vibe you are manifesting.
+    </p>
+  </div>
+
+  <div class="venues-toolbar" data-animate="fade-up">
+    <form class="venues-search" role="search" data-venues-search>
+      <label class="venues-search__field" aria-label="Search all venues">
+        <span class="venues-search__icon" aria-hidden="true">🔍</span>
+        <input
+          type="search"
+          name="q"
+          autocomplete="off"
+          placeholder="Search by aura, city, price, or amenities…"
+          data-venues-input
+        />
+        <span class="venues-search__glow" aria-hidden="true"></span>
+      </label>
+      <p class="venues-search__hint">
+        Every space-separated word becomes its own intent. Mix and match names, vibes, or budgets to
+        curate your perfect match.
+      </p>
+    </form>
+    <div class="venues-toolbar__meta" data-venues-meta>
+      Showing <span data-venues-count>{{ venues|length }}</span> curated venues.
+    </div>
+  </div>
+
+  <div class="venues-grid" data-venues-grid>
+    {% for venue in venues %}
+      <article
+        class="venue-card"
+        data-animate="fade-up"
+        data-search-text="{{ venue.search_blob|escape }}"
+      >
+        <div class="venue-card__media">
+          {% if venue.image_url %}
+            <img src="{{ venue.image_url }}" alt="{{ venue.title }} field" loading="lazy" />
+          {% else %}
+            <div class="venue-card__placeholder" aria-hidden="true">
+              <span>PitchPilot</span>
+            </div>
+          {% endif %}
+          <span class="venue-card__badge">{{ venue.type|default:"Multi-sport" }}</span>
+        </div>
+        <div class="venue-card__body">
+          <header>
+            <div class="venue-card__meta">
+              <span class="venue-card__location">{{ venue.location|default:"Undisclosed" }}</span>
+              <span class="venue-card__price">Rp {{ venue.price|floatformat:0|intcomma }}</span>
+            </div>
+            <h2>{{ venue.title }}</h2>
+          </header>
+          <p class="venue-card__description">
+            {{ venue.description|default:"This venue is ready for your next match." }}
+          </p>
+          <dl class="venue-card__stats">
+            <div>
+              <dt>Average rating</dt>
+              <dd>
+                {% if venue.average_rating %}
+                  {{ venue.average_rating|floatformat:1 }}
+                  <span aria-hidden="true">★</span>
+                {% else %}
+                  Not yet rated
+                {% endif %}
+              </dd>
+            </div>
+            <div>
+              <dt>Fan reviews</dt>
+              <dd>{{ venue.rating_count|default:0 }}</dd>
+            </div>
+          </dl>
+          {% if venue.facility_list %}
+            <ul class="venue-card__chips">
+              {% for item in venue.facility_list|slice:":5" %}
+                <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      </article>
+    {% empty %}
+      <p class="venues-empty">Venues will manifest here shortly.</p>
+    {% endfor %}
+  </div>
+  <div class="venues-empty" data-venues-empty hidden>
+    <span aria-hidden="true">🌙</span>
+    <p>No venues match that constellation yet. Refine your keywords and try again.</p>
+  </div>
+</section>

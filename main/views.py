@@ -38,6 +38,10 @@ def register_page(request: HttpRequest) -> HttpResponse:
     return render(request, "main/register.html")
 
 
+def _is_ajax(request: HttpRequest) -> bool:
+    return request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
     if _user_is_staff(request.user):
@@ -79,7 +83,13 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "metrics": metrics,
         "top_venues": top_venues,
     }
-    return render(request, "main/landing.html", context)
+
+    template = (
+        "main/partials/landing_fragment.html"
+        if _is_ajax(request)
+        else "main/landing.html"
+    )
+    return render(request, template, context)
 
 
 def _user_is_staff(user) -> bool:
@@ -411,6 +421,52 @@ def venues_list_api(request: HttpRequest) -> JsonResponse:
         extra_meta={"total_available": total_available},
     )
     return JsonResponse({"success": True, "data": data, "meta": meta})
+
+
+@login_required
+def venues_page(request: HttpRequest) -> HttpResponse:
+    ensure_sample_data()
+
+    venues_queryset = _base_venue_queryset().order_by("title")
+    venues = [_serialize_venue(venue) for venue in venues_queryset]
+    for venue in venues:
+        pieces = [
+            venue.get("title"),
+            venue.get("type"),
+            venue.get("location"),
+            venue.get("description"),
+            venue.get("facilities"),
+        ]
+        price = venue.get("price")
+        if price is not None:
+            pieces.append(str(price))
+        rating = venue.get("average_rating")
+        if rating is not None:
+            pieces.append(f"{rating:.1f}")
+        venue["search_blob"] = " ".join(
+            str(piece).strip() for piece in pieces if piece
+        ).lower()
+
+        facilities = venue.get("facilities")
+        facility_list: list[str] = []
+        if facilities:
+            raw_segments = str(facilities).replace("\r", "\n").split(",")
+            temp: list[str] = []
+            for segment in raw_segments:
+                temp.extend(segment.split("\n"))
+            for segment in temp:
+                cleaned = segment.strip()
+                if cleaned:
+                    facility_list.append(cleaned)
+        venue["facility_list"] = facility_list
+
+    context = {"venues": venues}
+    template = (
+        "main/partials/venues_fragment.html"
+        if _is_ajax(request)
+        else "main/venues.html"
+    )
+    return render(request, template, context)
 
 
 @login_required
